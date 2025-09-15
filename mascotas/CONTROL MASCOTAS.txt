@@ -1,0 +1,23 @@
+CONTROL MASCOTAS
+-> Pantalla de registro de mascotas
+Campos:
+- Nombre de la mascota
+- Nombre del dueño
+- Foto 
+- Teléfono
+- Checks con los días de las semana para marcar qué días prefiere que le agenden citas
+- Frecuencia (semanal, bisemanal, mensual, bimensual)
+- Comentarios
+Notas: Esta pantalla debe contener un datatable con la lista de las mascotas registradas y un botón para un nuevo registro
+
+-> Pantalla de Agenda de citas
+Campos:
+- Nombre de la mascota (con buscador)
+- Campo de calendario para seleccionar fecha (Validar contra los checks de los días que seleccionó como preferidos para agendar)
+- Campo para seleccionar la hora
+- Filtro por mascota 
+- Filtro por día (visualizar las citas que tiene en un día x)
+Notas:
+1. En esta pantalla deben aparecer todos los registros (citas) en un datatable o de preferencia en una vista de calendario y un botón para agregar una nueva cita
+2. Botones de delete, update en el datatable
+3. Ocupamos una opción para agendar en bloque, con los campos: fecha desde - hasta, frecuencia (validar la frecuencia registrada en el registro de la mascota, día de la semana, hora) con base en eso se agende por ejemplo, todos los lunes cada dos semanas a las 2 pm.

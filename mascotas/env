@@ -1,0 +1,15 @@
+environment = development
+
+base_url = 'http://localhost/'
+
+database.DEFAULT.DBDriver = mysql
+database.DEFAULT.hostname = localhost
+database.DEFAULT.database = 
+database.DEFAULT.username = 
+database.DEFAULT.password = 
+
+database.SQLSRV.DBDriver = sqlsrv
+database.SQLSRV.hostname = 192.168.0.1
+database.SQLSRV.database = 
+database.SQLSRV.username = 
+database.SQLSRV.password = 

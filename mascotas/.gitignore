@@ -1,0 +1,7 @@
+/vendor/
+/temp/
+/public/conf/
+/writer/*
+*.lock
+.env
+*.dat

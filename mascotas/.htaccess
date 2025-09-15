@@ -1,0 +1,25 @@
+# Habilitar mod_rewrite
+<IfModule mod_rewrite.c>
+	RewriteEngine On
+	RewriteCond %{REQUEST_FILENAME} !-d
+	RewriteCond %{REQUEST_FILENAME} !-f
+	RewriteRule ^(.+)$ index.php?url=$1 [QSA,L]
+</IfModule>
+
+# Bloquear acceso a archivos sensibles
+<FilesMatch "^.*\.(env|config\.php|sql|log|bak|ini)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Proteger el archivo .htaccess
+<Files .htaccess>
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Evitar listado de directorios
+Options -Indexes
+
+# Bloquear acceso a archivos de respaldo y temporales
+RedirectMatch 403 (?i)(^#.*#|~|\.bak|\.old|\.save|\.swp|\.swo)$
