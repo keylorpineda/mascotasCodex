@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services\DataBase;
 
 use InvalidArgumentException;
@@ -10,7 +11,7 @@ class DsnBuilder
 {
     private const DRIVER_MYSQL = 'mysql';
     private const DRIVER_SQLSRV = 'sqlsrv';
-    
+
     public function build(array $config): string
     {
         return match ($config['driver']) {
@@ -21,17 +22,36 @@ class DsnBuilder
             )
         };
     }
-    
+
     private function buildMysqlDsn(array $config): string
     {
+        $host = $config['host'] ?? '127.0.0.1';
+        $port = 3306;
+
+        // Permitir host con puerto embebido "localhost:3309"
+        if (str_contains($host, ':')) {
+            [$host, $maybePort] = explode(':', $host, 2);
+            if (ctype_digit($maybePort)) {
+                $port = (int) $maybePort;
+            }
+        }
+
+        // Si se pasó explícitamente el port en config, tiene prioridad
+        if (!empty($config['port'])) {
+            $port = (int) $config['port'];
+        }
+
         return sprintf(
-            '%s:host=%s;dbname=%s;charset=utf8mb4',
+            '%s:host=%s;port=%d;dbname=%s;charset=utf8mb4',
             $config['driver'],
-            $config['host'],
+            $host,
+            $port,
             $config['dbname']
         );
     }
-    
+
+
+
     private function buildSqlServerDsn(array $config): string
     {
         return sprintf(

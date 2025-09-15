@@ -6,7 +6,7 @@ use App\Entities\Personas\PersonasEntity;
 
 class PersonasModel extends Model
 {
-    protected string $table = "personas";
+    protected string $table = "tpersonas";
     protected string $primaryKey = "ID_PERSONA";
     protected string $returnType = PersonasEntity::class;
 

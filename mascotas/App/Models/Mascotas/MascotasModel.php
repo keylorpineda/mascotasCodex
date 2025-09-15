@@ -6,7 +6,7 @@ use App\Entities\Mascotas\MascotasEntity;
 
 class MascotasModel extends Model
 {
-    protected string $table = "mascotas";
+    protected string $table = "tmascotas";
     protected string $primaryKey = "ID_MASCOTA";
     protected string $returnType = MascotasEntity::class;
 

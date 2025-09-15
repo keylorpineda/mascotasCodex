@@ -4,49 +4,36 @@ namespace App\Core;
 class ModelLoader {
     /**
      * Carga un modelo de manera segura y flexible
-     * 
-     * @param string $modelName Nombre del modelo
-     * @param string|null $connectionName Nombre de la conexión de base de datos
-     * @return object|null Instancia del modelo o null si no se puede cargar
-     * @throws \Exception En caso de errores críticos
+     * @param string $modelName  p.ej. 'Mascotas\\MascotasModel' o 'App\\Models\\Mascotas\\MascotasModel'
+     * @param string|null $connectionName  nombre de la conexión ('.env'), por defecto 'default'
      */
-    public static function load(string $modelName, ?string $connectionName = 'default'): ?object
+    public static function load(string $modelName, ?string $connectionName = 'default'): object
     {
-        // Namespace base para modelos
         $baseNamespace = "App\\Models\\";
-        
-        // Preparar el nombre completo del modelo
-        $fullModelName = str_contains($modelName, $baseNamespace) 
-            ? $modelName 
-            : $baseNamespace . $modelName;
-        // Validaciones de seguridad
-        if (empty($modelName)) {
+        if ($modelName === '') {
             throw new \InvalidArgumentException("El nombre del modelo no puede estar vacío");
         }
-        
-        // Verificar existencia de la clase
+
+        // Si viene sin el namespace completo, prepéndelo
+        $fullModelName = str_starts_with($modelName, $baseNamespace)
+            ? $modelName
+            : $baseNamespace . $modelName;
+
+        // Verifica existencia de clase autoloadable
         if (!class_exists($fullModelName)) {
-            // Log de error opcional
-            error_log(
-                "Modelo no encontrado: {$fullModelName}".PHP_EOL, 3, base_dir("wirter/logs/modelLoader.log")
-            );
-            return null;
+            throw new \RuntimeException("Modelo no encontrado: {$fullModelName}");
         }
-        
-        // Verificar que la clase sea instanciable
-        $reflection = new \ReflectionClass($fullModelName);
-        if (!$reflection->isInstantiable()) {
-            throw new \Exception("El modelo {$fullModelName} no puede ser instanciado");
-        }
-        
+
         try {
-            // Intentar crear la instancia
-            return new $fullModelName($connectionName);
+            // Instancia el modelo pasándole la conexión (tu base Model la espera)
+            return new $fullModelName($connectionName ?? 'default');
         } catch (\Throwable $e) {
-            // Manejo de errores detallado
-            error_log(
-                "Error al instanciar modelo {$fullModelName}: " . $e->getMessage().PHP_EOL, 3, base_dir("wirter/logs/modelLoader.log")
-            );
+            // Escribe log claro
+            $logFile = base_dir("writer/logs/modelLoader.log");
+            if (!is_dir(dirname($logFile))) { @mkdir(dirname($logFile), 0755, true); }
+            @error_log("[".date('c')."] Error instanciando {$fullModelName}: ".$e->getMessage().PHP_EOL, 3, $logFile);
+
+            // Re-lanza excepción “genérica” que ve el front
             throw new \Exception("No se pudo crear la instancia del modelo", 500, $e);
         }
     }

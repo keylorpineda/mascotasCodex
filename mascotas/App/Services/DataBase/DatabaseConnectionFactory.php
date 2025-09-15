@@ -1,9 +1,8 @@
 <?php
 namespace App\Services\DataBase;
 
-use App\Config\DataBase\DatabaseConfig;
+use App\Config\Database\DatabaseConfig;
 use App\Services\DataBase\DsnBuilder;
-
 use PDO;
 use PDOException;
 use Exception;
@@ -26,7 +25,7 @@ class DatabaseConnectionFactory
     public function createConnection(string $databaseName = 'default'): PDO
     {
         $config  = $this->config->getDatabaseConfig($databaseName);
-        $dsn 	 = $this->buildDsn($config);
+        $dsn     = $this->buildDsn($config);
         $options = $this->getDefaultOptions($config);
         
         try {
@@ -43,7 +42,6 @@ class DatabaseConnectionFactory
             }
             
             return $connection;
-            
         } catch (PDOException $e) {
             throw new Exception(
                 "Error al conectar con la base de datos '{$databaseName}': " . $e->getMessage()
@@ -89,20 +87,20 @@ class DatabaseConnectionFactory
         // Opciones específicas por driver
         return match ($config['driver']) {
             'mysql' => (
-            	$baseOptions + [
-	                PDO::ATTR_TIMEOUT => 30,
-	                PDO::ATTR_PERSISTENT => false,
-	                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci",
-	                PDO::ATTR_EMULATE_PREPARES => false,
-	            ]
-	        ),
+                $baseOptions + [
+                    PDO::ATTR_TIMEOUT => 30,
+                    PDO::ATTR_PERSISTENT => false,
+                    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci",
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                ]
+            ),
             'sqlsrv' => (
-            	$baseOptions + [
-	                // SQL Server tiene opciones más limitadas
-	                PDO::ATTR_CASE => PDO::CASE_NATURAL,
-	                PDO::ATTR_ORACLE_NULLS => PDO::NULL_EMPTY_STRING,
-	            ]
-	        ),
+                $baseOptions + [
+                    // SQL Server tiene opciones más limitadas
+                    PDO::ATTR_CASE => PDO::CASE_NATURAL,
+                    PDO::ATTR_ORACLE_NULLS => PDO::NULL_EMPTY_STRING,
+                ]
+            ),
             default => $baseOptions
         };
     }
