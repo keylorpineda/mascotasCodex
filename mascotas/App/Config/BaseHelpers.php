@@ -22,7 +22,8 @@ if (!function_exists("helper")) {
 			if (strpos($name, '_helper') === false) { $name .= '_helper'; }
 			if (in_array($name, $includes, true)) { continue; }
 			$filename = $namespace.$name.".php";
-			if (file_exists($filename)) {
+			$fullPath = base_dir($filename);
+			if (file_exists($fullPath)) {
 				$includes[] = $filename;
 				continue;
 			}

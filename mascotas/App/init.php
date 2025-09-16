@@ -7,13 +7,13 @@ if (strtolower($_ENV['environment']) === "production") {
 	ini_set("display_errors", 0);
 	ini_set('display_startup_errors', 0);
 } else {
-	error_reporting(E_ALL);
+	error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 	ini_set("display_errors", 1);
 	ini_set('display_startup_errors', 1);
 }
 
-require_once __DIR__.('\Config\Constantes.php');
-require_once __DIR__.('\Config\BaseHelpers.php');
+require_once __DIR__ . '/Config/Constantes.php';
+require_once __DIR__ . '/Config/BaseHelpers.php';
 
 helper("cookies, views, redirect, auth");
 

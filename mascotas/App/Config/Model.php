@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Config;
 
 use Latitude\QueryBuilder\Query\MySql\SelectQuery;
@@ -8,7 +9,7 @@ use Latitude\QueryBuilder\Query\MySql\DeleteQuery;
 use Latitude\QueryBuilder\Query\SqlServer\SelectQuery as SqlServerSelectQuery;
 use Latitude\QueryBuilder\Engine\SqlServerEngine;
 use Latitude\QueryBuilder\Builder\LikeBuilder;
-use Latitude\QueryBuilder\Engine\MysqlEngine;
+use Latitude\QueryBuilder\Engine\MySqlEngine;
 use Latitude\QueryBuilder\QueryFactory;
 
 use function Latitude\QueryBuilder\on;
@@ -23,7 +24,7 @@ class Model
 {
     private $conn;
     private bool $in_transaction = false;
-    
+
     // Nueva propiedad para composición en lugar de herencia
     private QueryFactory $queryFactory;
 
@@ -49,12 +50,12 @@ class Model
     {
         helper("database_helper");
         $ENGINE = [
-            "mysql"  => (new MysqlEngine()),
+            "mysql"  => (new MySqlEngine()),
             "sqlsrv" => (new SqlServerEngine()),
         ];
         $this->conn = data_base($nombre_db);
         $driver = get_driver($nombre_db);
-        
+
         // Inicializar QueryFactory como propiedad en lugar de herencia
         $this->queryFactory = new QueryFactory($ENGINE[$driver]);
     }
@@ -68,12 +69,17 @@ class Model
     public function table(string $table, bool $resetType = false)
     {
         $this->table = $table;
-        if ($resetType) { $this->returnType = $this->returnTypeDefault; }
+        if ($resetType) {
+            $this->returnType = $this->returnTypeDefault;
+        }
         $this->TableIsSet = true;
         $this->select("*");
         return $this;
     }
-
+    public function from(string $table, bool $resetType = false)
+    {
+        return $this->table($table, $resetType);
+    }
     public function view()
     {
         $this->table = $this->view;
@@ -94,9 +100,9 @@ class Model
         return $this;
     }
 
-/**
- * Joins Methods
- */
+    /**
+     * Joins Methods
+     */
 
     public function inner_join(string $table, string $left, string $right)
     {
@@ -126,17 +132,19 @@ class Model
         return $this;
     }
 
-/**
- * .\Joins Methods
- */
+    /**
+     * .\Joins Methods
+     */
 
-/**
- * Find Methods
- */
+    /**
+     * Find Methods
+     */
 
     public function select(...$columns)
     {
-        if (!$this->TableIsSet) { $this->table($this->table); }
+        if (!$this->TableIsSet) {
+            $this->table($this->table);
+        }
         $columns = array_map(function ($item) {
             if (str_contains($item, " AS ")) {
                 list($column, $alias) = explode(" AS ", $item);
@@ -144,7 +152,7 @@ class Model
             }
             return $item;
         }, $columns);
-        
+
         // Usar queryFactory en lugar de herencia
         $this->setQuery($this->queryFactory->select(...$columns));
         $this->query->from($this->table);
@@ -155,7 +163,7 @@ class Model
     {
         if (!is_array($data)) {
             $col = $data;
-            $data = [ $data => $val ];
+            $data = [$data => $val];
         }
         if (!$this->TableIsSet) {
             $this->select("*");
@@ -176,7 +184,7 @@ class Model
     {
         if (!is_array($data)) {
             $col = $data;
-            $data = [ $data => $val ];
+            $data = [$data => $val];
         }
         if (!$this->TableIsSet) {
             $this->select("*");
@@ -195,7 +203,7 @@ class Model
     {
         if (!is_array($data)) {
             $col = $data;
-            $data = [ $data => $val ];
+            $data = [$data => $val];
         }
         if (!$this->TableIsSet) {
             $this->select("*");
@@ -214,7 +222,7 @@ class Model
     {
         if (!is_array($data)) {
             $col = $data;
-            $data = [ $data => $val ];
+            $data = [$data => $val];
         }
         if (!$this->TableIsSet) {
             $this->select("*");
@@ -235,7 +243,7 @@ class Model
     {
         if (!is_array($data)) {
             $col = $data;
-            $data = [ $data => $val ];
+            $data = [$data => $val];
         }
         if (!$this->TableIsSet) {
             $this->select("*");
@@ -254,7 +262,7 @@ class Model
     {
         if (!is_array($data)) {
             $col = $data;
-            $data = [ $data => $val ];
+            $data = [$data => $val];
         }
         if (!$this->TableIsSet) {
             $this->select("*");
@@ -273,7 +281,7 @@ class Model
     {
         if (!is_array($data)) {
             $col = $data;
-            $data = [ $data => $val ];
+            $data = [$data => $val];
         }
         if (!$this->TableIsSet) {
             $this->select("*");
@@ -290,7 +298,7 @@ class Model
     {
         if (!is_array($data)) {
             $col = $data;
-            $data = [ $data => $val ];
+            $data = [$data => $val];
         }
         if (!$this->TableIsSet) {
             $this->select("*");
@@ -305,7 +313,7 @@ class Model
     {
         if (!is_array($data)) {
             $col = $data;
-            $data = [ $data => $val ];
+            $data = [$data => $val];
         }
         if (!$this->TableIsSet) {
             $this->select("*");
@@ -320,7 +328,7 @@ class Model
     {
         if (!is_array($data)) {
             $col = $data;
-            $data = [ $data => $val ];
+            $data = [$data => $val];
         }
         if (!$this->TableIsSet) {
             $this->select("*");
@@ -337,7 +345,7 @@ class Model
     {
         if (!is_array($data)) {
             $col = $data;
-            $data = [ $data => $val ];
+            $data = [$data => $val];
         }
         if (!$this->TableIsSet) {
             $this->select("*");
@@ -352,7 +360,7 @@ class Model
     {
         if (!is_array($data)) {
             $col = $data;
-            $data = [ $data => $val ];
+            $data = [$data => $val];
         }
         if (!$this->TableIsSet) {
             $this->select("*");
@@ -436,7 +444,9 @@ class Model
     public function toReturnType()
     {
         $data = $this->data;
-        if ($this->returnType === $this->returnTypeDefault) { return $data; }
+        if ($this->returnType === $this->returnTypeDefault) {
+            return $data;
+        }
         if (!class_exists($this->returnType)) {
             throw new \Exception("La clase entidad '{$this->returnType}' no existe", 1);
         }
@@ -454,13 +464,13 @@ class Model
         return $return;
     }
 
-/**
- * .\Find Methods
- */
+    /**
+     * .\Find Methods
+     */
 
-/**
- * Insert Methods
- */
+    /**
+     * Insert Methods
+     */
 
     public function insert($data = [])
     {
@@ -494,10 +504,10 @@ class Model
         return $this->insertID;
     }
 
-/**
- * .\Insert Methods
- */
-    
+    /**
+     * .\Insert Methods
+     */
+
     public function save($data = [])
     {
         $data = $this->serializeToSaveData($data);
@@ -507,9 +517,9 @@ class Model
         return $this->update($data);
     }
 
-/**
- * Update Methods
- */
+    /**
+     * Update Methods
+     */
 
     public function update($data = [], $pk = null)
     {
@@ -527,7 +537,7 @@ class Model
             // Se encontraron claves no permitidas
             // throw new \Exception("Las propiedades '".implode(', ', $invalidKeys)."' no se encuentran definidas en el modelo.", 1);
         }
-        
+
         // Usar queryFactory en lugar de herencia
         $this->query = $this->queryFactory->update($this->table, $data);
         $this->TableIsSet = true;
@@ -548,13 +558,13 @@ class Model
         return $this->affectedRows;
     }
 
-/**
- * .\Update Methods
- */
+    /**
+     * .\Update Methods
+     */
 
-/**
- * Delete Methods
- */
+    /**
+     * Delete Methods
+     */
 
     public function delete($pk = null)
     {
@@ -578,9 +588,9 @@ class Model
         return $this->deletedRows;
     }
 
-/**
- * .\Delete Methods
- */
+    /**
+     * .\Delete Methods
+     */
 
     public function execute()
     {
@@ -693,7 +703,7 @@ class Model
     private function serializeToSaveData($data = []): array
     {
         if (is_object($data) && get_class($data) !== 'stdClass') {
-            if (file_exists(base_dir(get_class($data)).".php")) {
+            if (file_exists(base_dir(get_class($data)) . ".php")) {
                 $data = $data->toArray();
             }
         }

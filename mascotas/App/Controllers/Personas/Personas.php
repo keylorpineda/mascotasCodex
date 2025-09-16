@@ -26,7 +26,6 @@ class Personas extends BaseController
         if ($ID_PERSONA !== '') {
             $row = $PersonasModel
                 ->select('ID_PERSONA','NOMBRE','TELEFONO','CORREO')
-                ->from('tpersonas')
                 ->where('ID_PERSONA', $ID_PERSONA)
                 ->toArray()
                 ->getFirstRow();
@@ -70,7 +69,6 @@ class Personas extends BaseController
 
         $row = model('Personas\\PersonasModel')
             ->select('ID_PERSONA','NOMBRE','TELEFONO','CORREO')
-            ->from('tpersonas')
             ->where('ID_PERSONA', $ced)
             ->toArray()
             ->getFirstRow();
@@ -96,7 +94,7 @@ class Personas extends BaseController
         }
 
         $existe = model('Personas\\PersonasModel')
-           ->select('ID_PERSONA')->from('tpersonas')
+           ->select('ID_PERSONA')
             ->where('ID_PERSONA',$ID_PERSONA)->limit(1)->get();
         if (!empty($existe)) {
             return json_encode(Warning('Ya existe una persona con esa cédula')->toArray());
@@ -155,14 +153,14 @@ class Personas extends BaseController
         }
 
         $dbUsuarios = model('Usuarios\\UsuariosModel')
-            ->select('ID_USUARIO')->from('tusuarios')
+            ->select('ID_USUARIO')
             ->where('ID_PERSONA', $ID_PERSONA)->limit(1)->get();
         if (!empty($dbUsuarios)) {
             return json_encode(Warning('No es posible eliminar: la persona tiene un usuario asociado')->toArray());
         }
 
         $dbMascotas = model('Mascotas\\MascotasModel')
-            ->select('ID_MASCOTA')->from('tmascotas')
+            ->select('ID_MASCOTA')
             ->where('ID_PERSONA', $ID_PERSONA)->limit(1)->get();
         if (!empty($dbMascotas)) {
             return json_encode(Warning('No es posible eliminar: la persona tiene mascotas asociadas')->toArray());

@@ -1,12 +1,12 @@
 environment = development
 
-base_url = 'http://localhost/'
+base_url = http://localhost/mascotas/
 
 database.DEFAULT.DBDriver = mysql
-database.DEFAULT.hostname = localhost
-database.DEFAULT.database = 
-database.DEFAULT.username = 
-database.DEFAULT.password = 
+database.DEFAULT.hostname = localhost:3309
+database.DEFAULT.database = mascotas_db
+database.DEFAULT.username = mascotas_user
+database.DEFAULT.password = mascotas_pass
 
 database.SQLSRV.DBDriver = sqlsrv
 database.SQLSRV.hostname = 192.168.0.1

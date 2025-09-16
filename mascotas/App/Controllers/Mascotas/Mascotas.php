@@ -30,10 +30,17 @@ class Mascotas extends BaseController
             // Una sola mascota
             if ($ID_MASCOTA !== '') {
                 $MASCOTA = $MascotasModel
-                    ->select('m.ID_MASCOTA', 'm.ID_PERSONA', 'p.NOMBRE AS DUENNO', 'm.NOMBRE_MASCOTA', 'm.FOTO_URL', 'm.ESTADO')
-                    ->from('tmascotas m')
-                    ->join('tpersonas p', 'p.ID_PERSONA = m.ID_PERSONA')
-                    ->where('m.ID_MASCOTA', $ID_MASCOTA)
+                ->table('tmascotas')
+                    ->select(
+                        'tmascotas.ID_MASCOTA',
+                        'tmascotas.ID_PERSONA',
+                        'tpersonas.NOMBRE AS DUENNO',
+                        'tmascotas.NOMBRE_MASCOTA',
+                        'tmascotas.FOTO_URL',
+                        'tmascotas.ESTADO'
+                    )
+                    ->inner_join('tpersonas', 'tpersonas.ID_PERSONA', 'tmascotas.ID_PERSONA')
+                    ->where('tmascotas.ID_MASCOTA', $ID_MASCOTA)
                     ->toArray()
                     ->getFirstRow();
 
@@ -116,7 +123,7 @@ class Mascotas extends BaseController
         }
 
         $PM = model('Personas\\PersonasModel');
-        $existe = $PM->select('ID_PERSONA')->from('tpersonas')->where('ID_PERSONA', $ID_PERSONA)->toArray()->getFirstRow();
+        $existe = $PM->select('ID_PERSONA')->where('ID_PERSONA', $ID_PERSONA)->toArray()->getFirstRow();
         if (!$existe) {
             $NOMBRE_DUENNO = trim($_POST['NOMBRE_DUENNO'] ?? '');
             if ($NOMBRE_DUENNO === '') $NOMBRE_DUENNO = 'SIN NOMBRE';
