@@ -14,7 +14,6 @@ class Mascotas extends BaseController
 {
     is_logged_in();
 
-    // Siempre JSON para DataTables
     header('Content-Type: application/json; charset=utf-8');
 
     try {
@@ -27,7 +26,6 @@ class Mascotas extends BaseController
 
             $MascotasModel = model('Mascotas\\MascotasModel');
 
-            // Una sola mascota
             if ($ID_MASCOTA !== '') {
                 $MASCOTA = $MascotasModel
                 ->table('tmascotas')
@@ -45,7 +43,7 @@ class Mascotas extends BaseController
                     ->getFirstRow();
 
                 echo json_encode($MASCOTA ?? []);
-                exit; // 🔴 nada más debe imprimirse
+                exit; 
             }
 
             // Lista

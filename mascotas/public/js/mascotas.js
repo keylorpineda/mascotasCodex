@@ -87,6 +87,9 @@
         d.nombre    = $f.find('[data-app-filtro-nombre]').val() || '';
         d.idpersona = $f.find('[data-app-filtro-cedula]').val() || '';
         d.estado    = $f.find('[data-app-filtro-estado]').val() || '';
+        },
+      error: function (xhr) {
+        console.error(xhr.responseText);
       }
     },
     columns: columnas(),
