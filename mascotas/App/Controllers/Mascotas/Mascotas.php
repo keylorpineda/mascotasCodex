@@ -89,10 +89,10 @@ class Mascotas extends BaseController
         exit;
 
     } catch (\Throwable $e) {
-        http_response_code(200);
+        http_response_code(500);
         echo json_encode([
             'data'  => [],
-            'error' => 'Error interno: '.$e->getMessage()
+            'error' => 'Error interno: ' . $e->getMessage()
         ]);
         exit;
     }

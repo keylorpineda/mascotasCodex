@@ -2,6 +2,9 @@
 $permiso_guardar  = validar_permiso("");
 $permiso_eliminar = validar_permiso("");
 $permiso_editar   = validar_permiso("");
+//$permiso_guardar  = validar_permiso(['M0001']);
+//$permiso_eliminar = validar_permiso(['M0003']);
+//$permiso_editar   = validar_permiso(['M0002']);
 ?>
 
 <?php layout('base') ?>
@@ -157,7 +160,7 @@ $permiso_editar   = validar_permiso("");
     eliminar: "<?= base_url('mascotas/eliminar') ?>"
   };
   const URL_PERSONAS = {
-    buscar: "<?= base_url('personas/buscar_por_cedula') ?>"
+    buscar: "<?= base_url('personas/buscar-por-cedula') ?>"
   };
 </script>
 <script src="<?= base_url('public/dist/datatables/datatables.min.js') ?>"></script>

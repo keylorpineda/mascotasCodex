@@ -4,6 +4,9 @@
   const cedulaInput = formulario.find('[name="ID_PERSONA"]');
   const duennoFields = formulario.find('[data-duenno-field]');
   const duennoInputs = duennoFields.find('input');
+  const estadoHiddenInput = formulario.find('[data-app-estado-hidden]');
+  const estadoSelectContainer = formulario.find('[data-app-estado-select-container]');
+  const estadoSelect = formulario.find('[data-app-estado-select]');
   let buscarPersonaTimeout = null;
   let buscarPersonaXHR = null;
 
@@ -109,9 +112,17 @@
     ];
   }
 
-  function bloquearEstado(b) {
-    const $sel = formulario.find('[name="ESTADO"]');
-    if (b) { $sel.val('ACT').prop('disabled', true); } else { $sel.prop('disabled', false); }
+  function bloquearEstado(esAlta) {
+    if (esAlta) {
+      estadoSelectContainer.addClass('d-none');
+      estadoSelect.prop('disabled', true);
+      estadoHiddenInput.prop('disabled', false).val('ACT');
+    } else {
+      estadoSelectContainer.removeClass('d-none');
+      const valor = estadoSelect.val() || estadoHiddenInput.val() || 'ACT';
+      estadoSelect.val(valor).prop('disabled', false);
+      estadoHiddenInput.prop('disabled', true);
+    }
   }
 
   $(document).on('click', '[data-bs-target="#mascotaModal"]', function () {
@@ -191,7 +202,26 @@
         d.estado = $f.find('[data-app-filtro-estado]').val() || '';
       },
       error: function (xhr) {
-        console.error(xhr.responseText);
+        let mensaje = 'Ocurrió un error al obtener el listado de mascotas.';
+
+        if (xhr.responseJSON && xhr.responseJSON.error) {
+          mensaje = xhr.responseJSON.error;
+        } else if (xhr.responseText) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            if (data && data.error) {
+              mensaje = data.error;
+            }
+          } catch (error) {
+            console.error('No se pudo parsear la respuesta de error:', error);
+          }
+        }
+
+        if (typeof alerta !== 'undefined' && alerta.Danger) {
+          alerta.Danger(mensaje).show();
+        }
+
+        console.error(xhr.responseText || mensaje);
       }
     },
     columns: columnas(),
@@ -213,7 +243,7 @@
   formulario.on('submit', guardarMascota);
   $('#tmascotas').on('click', '[data-editar]', editarMascota);
   $('#tmascotas').on('click', '[data-eliminar]', eliminarMascota);
-   cedulaInput.on('input', function () {
+  cedulaInput.on('input', function () {
     consultarPersonaPorCedula($(this).val());
   });
   cedulaInput.on('blur', function () {
