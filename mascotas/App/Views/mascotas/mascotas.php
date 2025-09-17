@@ -1,7 +1,7 @@
 <?php
-  $permiso_guardar  = validar_permiso("");
-  $permiso_eliminar = validar_permiso("");
-  $permiso_editar   = validar_permiso("");
+$permiso_guardar  = validar_permiso("");
+$permiso_eliminar = validar_permiso("");
+$permiso_editar   = validar_permiso("");
 ?>
 
 <?php layout('base') ?>
@@ -61,9 +61,9 @@
                   <i class='bx bx-search-alt-2'></i> Buscar
                 </button>
                 <?php if ($permiso_guardar): ?>
-                <button type="button" class="btn btn-success btn-icon" data-bs-toggle="modal" data-bs-target="#mascotaModal">
-                  <i class="fas fa-plus"></i> Nueva Mascota
-                </button>
+                  <button type="button" class="btn btn-success btn-icon" data-bs-toggle="modal" data-bs-target="#mascotaModal">
+                    <i class="fas fa-plus"></i> Nueva Mascota
+                  </button>
                 <?php endif ?>
               </div>
             </div>
@@ -77,65 +77,87 @@
 </main>
 
 <?php if ($permiso_guardar || $permiso_editar): ?>
-<div class="modal fade" id="mascotaModal" tabindex="-1" aria-labelledby="mascotaModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header" style="background-color: #d2f4ea;">
-        <h5 class="modal-title" id="mascotaModalLabel">Registrar / Editar Mascota</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <form id="FORM_MASCOTA" autocomplete="off">
-        <div class="modal-body">
-          <input type="hidden" name="ID_MASCOTA" />
-          <div class="row g-3">
-            <div class="col-sm-4">
-              <label class="w-100">
-                Dueño (cédula): <span class="text-danger">*</span>
-                <input type="text" class="form-control" name="ID_PERSONA" required />
-              </label>
-            </div>
-            <div class="col-sm-4">
-              <label class="w-100">
-                Nombre Mascota: <span class="text-danger">*</span>
-                <input type="text" class="form-control" name="NOMBRE_MASCOTA" required />
-              </label>
-            </div>
-            <div class="col-sm-12">
-              <label class="w-100">
-                Foto URL:
-                <input type="text" class="form-control" name="FOTO_URL" />
-              </label>
-            </div>
-            <div class="col-sm-4">
-              <label class="w-100">
-                Estado: <span class="text-danger">*</span>
-                <select class="form-select" name="ESTADO" required>
-                  <option value="">Seleccione</option>
-                  <option value="ACT">Activo</option>
-                  <option value="INC">Inactivo</option>
-                </select>
-              </label>
+  <div class="modal fade" id="mascotaModal" tabindex="-1" aria-labelledby="mascotaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header" style="background-color: #d2f4ea;">
+          <h5 class="modal-title" id="mascotaModalLabel">Registrar / Editar Mascota</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <form id="FORM_MASCOTA" autocomplete="off">
+          <div class="modal-body">
+            <input type="hidden" name="ID_MASCOTA" />
+            <div class="row g-3">
+              <input type="hidden" name="ESTADO" value="ACT" data-app-estado-hidden />
+              <div class="col-sm-4">
+                <label class="w-100">
+                  Dueño (cédula): <span class="text-danger">*</span>
+                  <input type="text" class="form-control" name="ID_PERSONA" required />
+                </label>
+              </div>
+              <div class="col-sm-4 d-none" data-duenno-field>
+                <label class="w-100">
+                  Nombre del dueño: <span class="text-danger">*</span>
+                  <input type="text" class="form-control" name="NOMBRE_DUENNO" />
+                </label>
+              </div>
+              <div class="col-sm-4 d-none" data-duenno-field>
+                <label class="w-100">
+                  Teléfono del dueño: <span class="text-danger">*</span>
+                  <input type="text" class="form-control" name="TELEFONO_DUENNO" />
+                </label>
+              </div>
+              <div class="col-sm-4 d-none" data-duenno-field>
+                <label class="w-100">
+                  Correo del dueño: <span class="text-danger">*</span>
+                  <input type="email" class="form-control" name="CORREO_DUENNO" />
+                </label>
+              </div>
+              <div class="col-sm-4">
+                <label class="w-100">
+                  Nombre Mascota: <span class="text-danger">*</span>
+                  <input type="text" class="form-control" name="NOMBRE_MASCOTA" required />
+                </label>
+              </div>
+              <div class="col-sm-12">
+                <label class="w-100">
+                  Foto URL:
+                  <input type="text" class="form-control" name="FOTO_URL" />
+                </label>
+              </div>
+              <div class="col-sm-4 d-none" data-app-estado-select-container>
+                <label class="w-100">
+                  Estado: <span class="text-danger">*</span>
+                  <select class="form-select" name="ESTADO" required disabled data-app-estado-select>
+                    <option value="">Seleccione</option>
+                    <option value="ACT">Activo</option>
+                    <option value="INC">Inactivo</option>
+                  </select>
+                </label>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Guardar</button>
-        </div>
-      </form>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Guardar</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
-</div>
 <?php endif ?>
 <?php endSection() ?>
 
 <?php section('foot') ?>
 <script>
   const URL_MASCOTAS = {
-    obtener:  "<?= base_url('mascotas/obtener') ?>",
-    guardar:  "<?= base_url('mascotas/guardar') ?>",
-    editar:   "<?= base_url('mascotas/editar') ?>",
+    obtener: "<?= base_url('mascotas/obtener') ?>",
+    guardar: "<?= base_url('mascotas/guardar') ?>",
+    editar: "<?= base_url('mascotas/editar') ?>",
     eliminar: "<?= base_url('mascotas/eliminar') ?>"
+  };
+  const URL_PERSONAS = {
+    buscar: "<?= base_url('personas/buscar_por_cedula') ?>"
   };
 </script>
 <script src="<?= base_url('public/dist/datatables/datatables.min.js') ?>"></script>

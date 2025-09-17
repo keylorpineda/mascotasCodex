@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Controllers\Personas;
 
 use App\Controllers\BaseController;
@@ -11,53 +12,62 @@ class Personas extends BaseController
     }
 
     public function obtener()
-{
-    is_logged_in();
+    {
+        is_logged_in();
 
-    $data = [];
-    if (validar_permiso(['PE0001','PE0002','PE0003'])) {
-        $NOMBRE     = trim($_GET['nombre']     ?? '');
-        $TELEFONO   = trim($_GET['telefono']   ?? '');
-        $CORREO     = trim($_GET['correo']     ?? '');
-        $ID_PERSONA = trim($_GET['idpersona']  ?? '');
+        $data = [];
+        if (validar_permiso(['PE0001', 'PE0002', 'PE0003'])) {
+            $NOMBRE     = trim($_GET['nombre']     ?? '');
+            $TELEFONO   = trim($_GET['telefono']   ?? '');
+            $CORREO     = trim($_GET['correo']     ?? '');
+            $ID_PERSONA = trim($_GET['idpersona']  ?? '');
 
-        $PersonasModel = model('Personas\\PersonasModel');
+            $PersonasModel = model('Personas\\PersonasModel');
 
-        if ($ID_PERSONA !== '') {
-            $row = $PersonasModel
-                ->select('ID_PERSONA','NOMBRE','TELEFONO','CORREO')
-                ->where('ID_PERSONA', $ID_PERSONA)
-                ->toArray()
-                ->getFirstRow();
-            return json_encode($row ?? []);
-        }
-
-        $where_list = ['1=1'];
-        $params     = [];
-
-        if ($NOMBRE !== '') {
-            $parts = array_filter(explode(' ', $NOMBRE), fn($v)=>trim($v)!=='');
-            if (!empty($parts)) {
-                $like=[]; foreach($parts as $p){ $like[]='NOMBRE LIKE ?'; $params[]="%{$p}%"; }
-                $where_list[] = '(' . implode(' OR ', $like) . ')';
+            if ($ID_PERSONA !== '') {
+                $row = $PersonasModel
+                    ->select('ID_PERSONA', 'NOMBRE', 'TELEFONO', 'CORREO')
+                    ->where('ID_PERSONA', $ID_PERSONA)
+                    ->toArray()
+                    ->getFirstRow();
+                return json_encode($row ?? []);
             }
-        }
-        if ($TELEFONO !== '') { $where_list[]='TELEFONO LIKE ?'; $params[]="%{$TELEFONO}%"; }
-        if ($CORREO   !== '') { $where_list[]='CORREO LIKE ?';   $params[]="%{$CORREO}%"; }
 
-        $where  = implode(' AND ', $where_list);
-        $result = $PersonasModel->query(
-            "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO
+            $where_list = ['1=1'];
+            $params     = [];
+
+            if ($NOMBRE !== '') {
+                $parts = array_filter(explode(' ', $NOMBRE), fn($v) => trim($v) !== '');
+                if (!empty($parts)) {
+                    $like = [];
+                    foreach ($parts as $p) {
+                        $like[] = 'NOMBRE LIKE ?';
+                        $params[] = "%{$p}%";
+                    }
+                    $where_list[] = '(' . implode(' OR ', $like) . ')';
+                }
+            }
+            if ($TELEFONO !== '') {
+                $where_list[] = 'TELEFONO LIKE ?';
+                $params[] = "%{$TELEFONO}%";
+            }
+            if ($CORREO   !== '') {
+                $where_list[] = 'CORREO LIKE ?';
+                $params[] = "%{$CORREO}%";
+            }
+
+            $where  = implode(' AND ', $where_list);
+            $data = $PersonasModel->query(
+                "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO
                FROM tpersonas
               WHERE {$where}
            ORDER BY NOMBRE ASC",
-            $params
-        );
-        $data = $result->getResultArray();
-    }
+                $params
+            );
+        }
 
-    return json_encode(['data'=>$data]);
-}
+        return json_encode(['data' => $data]);
+    }
 
 
 
@@ -68,7 +78,7 @@ class Personas extends BaseController
         if ($ced === '') return json_encode([]);
 
         $row = model('Personas\\PersonasModel')
-            ->select('ID_PERSONA','NOMBRE','TELEFONO','CORREO')
+            ->select('ID_PERSONA', 'NOMBRE', 'TELEFONO', 'CORREO')
             ->where('ID_PERSONA', $ced)
             ->toArray()
             ->getFirstRow();
@@ -89,25 +99,35 @@ class Personas extends BaseController
         $TELEFONO   = trim($_POST['TELEFONO']   ?? '');
         $CORREO     = trim($_POST['CORREO']     ?? '');
 
-        if ($ID_PERSONA==='' || $NOMBRE==='') {
+        if ($ID_PERSONA === '' || $NOMBRE === '') {
             return json_encode(Warning('Cédula y Nombre son obligatorios')->toArray());
         }
 
         $existe = model('Personas\\PersonasModel')
-           ->select('ID_PERSONA')
-            ->where('ID_PERSONA',$ID_PERSONA)->limit(1)->get();
-        if (!empty($existe)) {
+            ->select('ID_PERSONA')
+            ->where('ID_PERSONA', $ID_PERSONA)
+            ->limit(1)
+            ->toArray()
+            ->getFirstRow();
+        if ($existe !== null) {
             return json_encode(Warning('Ya existe una persona con esa cédula')->toArray());
         }
 
-        $resp = model('Personas\\PersonasModel')->insert([
-            'ID_PERSONA' => $ID_PERSONA,
-            'NOMBRE'     => $NOMBRE,
-            'TELEFONO'   => $TELEFONO ?: null,
-            'CORREO'     => $CORREO   ?: null,
-        ]);
+        $PersonasModel = model('Personas\\PersonasModel');
 
-        if (!empty($resp)) return json_encode(Success('Persona creada correctamente')->toArray());
+        try {
+            $resp = $PersonasModel->insert([
+                'ID_PERSONA' => $ID_PERSONA,
+                'NOMBRE'     => $NOMBRE,
+                'TELEFONO'   => $TELEFONO ?: null,
+                'CORREO'     => $CORREO   ?: null,
+            ]);
+        } catch (\Throwable $th) {
+            log_message('error', 'Error al insertar persona: {error}', ['error' => $th->getMessage()]);
+            return json_encode(Danger('No fue posible crear la persona: ' . $th->getMessage())->toArray());
+        }
+
+        if ($resp !== null && $resp !== false) return json_encode(Success('Persona creada correctamente')->toArray());
         return json_encode(Warning('No ha sido posible crear la persona, intentalo de nuevo más tarde')->toArray());
     }
 
@@ -124,7 +144,7 @@ class Personas extends BaseController
         $TELEFONO   = trim($_POST['TELEFONO']   ?? '');
         $CORREO     = trim($_POST['CORREO']     ?? '');
 
-        if ($ID_PERSONA==='' || $NOMBRE==='') {
+        if ($ID_PERSONA === '' || $NOMBRE === '') {
             return json_encode(Warning('Campos incompletos')->toArray());
         }
 
@@ -148,21 +168,25 @@ class Personas extends BaseController
         }
 
         $ID_PERSONA = trim($_POST['idpersona'] ?? '');
-        if ($ID_PERSONA==='') {
+        if ($ID_PERSONA === '') {
             return json_encode(Warning('Solicitud inválida')->toArray());
         }
 
         $dbUsuarios = model('Usuarios\\UsuariosModel')
-            ->select('ID_USUARIO')
-            ->where('ID_PERSONA', $ID_PERSONA)->limit(1)->get();
-        if (!empty($dbUsuarios)) {
+            ->where('ID_PERSONA', $ID_PERSONA)
+            ->limit(1)
+            ->toArray()
+            ->getFirstRow();
+        if ($dbUsuarios !== null) {
             return json_encode(Warning('No es posible eliminar: la persona tiene un usuario asociado')->toArray());
         }
 
         $dbMascotas = model('Mascotas\\MascotasModel')
-            ->select('ID_MASCOTA')
-            ->where('ID_PERSONA', $ID_PERSONA)->limit(1)->get();
-        if (!empty($dbMascotas)) {
+            ->where('ID_PERSONA', $ID_PERSONA)
+            ->limit(1)
+            ->toArray()
+            ->getFirstRow();
+        if ($dbMascotas !== null) {
             return json_encode(Warning('No es posible eliminar: la persona tiene mascotas asociadas')->toArray());
         }
 

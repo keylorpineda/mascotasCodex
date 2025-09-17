@@ -1,7 +1,95 @@
 (function () {
   const formulario = $('#FORM_MASCOTA');
   const modal = $('#mascotaModal');
+  const cedulaInput = formulario.find('[name="ID_PERSONA"]');
+  const duennoFields = formulario.find('[data-duenno-field]');
+  const duennoInputs = duennoFields.find('input');
+  let buscarPersonaTimeout = null;
+  let buscarPersonaXHR = null;
 
+  function toggleDuennoFields(show) {
+    duennoFields.toggleClass('d-none', !show);
+    duennoInputs.prop('required', show);
+  }
+
+  function fillDuennoFields(values) {
+    const data = values || {};
+    duennoInputs.each(function () {
+      const $input = $(this);
+      const name = $input.attr('name');
+      if (Object.prototype.hasOwnProperty.call(data, name)) {
+        $input.val(data[name]);
+      } else {
+        $input.val('');
+      }
+    });
+  }
+
+  function handlePersonaNotFound() {
+    fillDuennoFields({
+      NOMBRE_DUENNO: '',
+      TELEFONO_DUENNO: '',
+      CORREO_DUENNO: ''
+    });
+    toggleDuennoFields(true);
+  }
+
+  function handlePersonaFound(persona) {
+    fillDuennoFields({
+      NOMBRE_DUENNO: persona.NOMBRE || '',
+      TELEFONO_DUENNO: persona.TELEFONO || '',
+      CORREO_DUENNO: persona.CORREO || ''
+    });
+    toggleDuennoFields(false);
+  }
+
+  function consultarPersonaPorCedula(cedula) {
+    const valor = (cedula || '').trim();
+
+    if (buscarPersonaTimeout) {
+      clearTimeout(buscarPersonaTimeout);
+      buscarPersonaTimeout = null;
+    }
+
+    if (buscarPersonaXHR) {
+      buscarPersonaXHR.abort();
+      buscarPersonaXHR = null;
+    }
+
+    if (valor === '') {
+      fillDuennoFields({
+        NOMBRE_DUENNO: '',
+        TELEFONO_DUENNO: '',
+        CORREO_DUENNO: ''
+      });
+      toggleDuennoFields(false);
+      return;
+    }
+
+    buscarPersonaTimeout = setTimeout(() => {
+      buscarPersonaXHR = $.ajax({
+        url: URL_PERSONAS.buscar,
+        data: { cedula: valor },
+        dataType: 'json',
+        method: 'GET'
+      })
+        .done(resp => {
+          if (resp && resp.ID_PERSONA) {
+            handlePersonaFound(resp);
+          } else {
+            handlePersonaNotFound();
+          }
+        })
+        .fail((_, textStatus) => {
+          if (textStatus !== 'abort') {
+            handlePersonaNotFound();
+          }
+        })
+        .always(() => {
+          buscarPersonaXHR = null;
+        });
+    }, 250);
+  }
   function columnas() {
     return [
       { title: 'ID', data: 'ID_MASCOTA' },
@@ -9,7 +97,8 @@
       { title: 'Dueño', data: 'DUENNO' },
       { title: 'Foto', data: 'FOTO_URL', render: d => d ? `<img src="${d}" class="img-thumbnail" style="width:40px;height:40px;">` : '' },
       { title: 'Estado', data: 'ESTADO', render: d => d === 'ACT' ? 'ACTIVO' : 'INACTIVO' },
-      { title: 'Acciones', data: null, orderable: false, searchable: false, render: (_, __, row) => `
+      {
+        title: 'Acciones', data: null, orderable: false, searchable: false, render: (_, __, row) => `
         <button type="button" class="btn btn-primary btn-sm" data-editar data-id="${row.ID_MASCOTA}">
           <i class='bx bx-edit-alt'></i>
         </button>
@@ -25,12 +114,18 @@
     if (b) { $sel.val('ACT').prop('disabled', true); } else { $sel.prop('disabled', false); }
   }
 
-  $(document).on('click','[data-bs-target="#mascotaModal"]', function(){
+  $(document).on('click', '[data-bs-target="#mascotaModal"]', function () {
     formulario[0].reset();
     formulario.removeData('editar');
     formulario.find('[name="ID_MASCOTA"]').val('');
     bloquearEstado(true);
     modal.find('.modal-title').text('Registrar Mascota');
+    toggleDuennoFields(false);
+    fillDuennoFields({
+      NOMBRE_DUENNO: '',
+      TELEFONO_DUENNO: '',
+      CORREO_DUENNO: ''
+    });
   });
 
   function guardarMascota(ev) {
@@ -60,6 +155,13 @@
       bloquearEstado(false);
       modal.find('.modal-title').text('Editar Mascota');
       modal.modal('show');
+      toggleDuennoFields(false);
+      fillDuennoFields({
+        NOMBRE_DUENNO: '',
+        TELEFONO_DUENNO: '',
+        CORREO_DUENNO: ''
+      });
+      consultarPersonaPorCedula(formulario.find('[name="ID_PERSONA"]').val());
     });
   }
 
@@ -84,10 +186,10 @@
       dataSrc: 'data',
       data: function (d) {
         const $f = $('[data-app-filtros]');
-        d.nombre    = $f.find('[data-app-filtro-nombre]').val() || '';
+        d.nombre = $f.find('[data-app-filtro-nombre]').val() || '';
         d.idpersona = $f.find('[data-app-filtro-cedula]').val() || '';
-        d.estado    = $f.find('[data-app-filtro-estado]').val() || '';
-        },
+        d.estado = $f.find('[data-app-filtro-estado]').val() || '';
+      },
       error: function (xhr) {
         console.error(xhr.responseText);
       }
@@ -111,4 +213,10 @@
   formulario.on('submit', guardarMascota);
   $('#tmascotas').on('click', '[data-editar]', editarMascota);
   $('#tmascotas').on('click', '[data-eliminar]', eliminarMascota);
+   cedulaInput.on('input', function () {
+    consultarPersonaPorCedula($(this).val());
+  });
+  cedulaInput.on('blur', function () {
+    consultarPersonaPorCedula($(this).val());
+  });
 })();

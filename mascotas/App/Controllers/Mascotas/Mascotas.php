@@ -43,10 +43,9 @@ class Mascotas extends BaseController
                     ->getFirstRow();
 
                 echo json_encode($MASCOTA ?? []);
-                exit; 
+                exit;
             }
 
-            // Lista
             $where_list = ['1=1'];
             $params     = [];
 
@@ -69,10 +68,7 @@ class Mascotas extends BaseController
                     $where_list[] = '(' . implode(' OR ', $like) . ')';
                 }
             }
-
             $where = implode(' AND ', $where_list);
-
-            // BaseModel->query() devuelve ARRAY
             $MASCOTAS = $MascotasModel->query(
                 "SELECT
                     m.ID_MASCOTA,
@@ -90,16 +86,15 @@ class Mascotas extends BaseController
         }
 
         echo json_encode(['data' => $MASCOTAS]);
-        exit; // 🔴 importante
+        exit;
 
     } catch (\Throwable $e) {
-        // Para que DataTables no tire popup, siempre JSON válido
         http_response_code(200);
         echo json_encode([
             'data'  => [],
             'error' => 'Error interno: '.$e->getMessage()
         ]);
-        exit; // 🔴 importante
+        exit;
     }
 }
 
@@ -123,13 +118,18 @@ class Mascotas extends BaseController
         $PM = model('Personas\\PersonasModel');
         $existe = $PM->select('ID_PERSONA')->where('ID_PERSONA', $ID_PERSONA)->toArray()->getFirstRow();
         if (!$existe) {
-            $NOMBRE_DUENNO = trim($_POST['NOMBRE_DUENNO'] ?? '');
-            if ($NOMBRE_DUENNO === '') $NOMBRE_DUENNO = 'SIN NOMBRE';
+            $NOMBRE_DUENNO   = trim($_POST['NOMBRE_DUENNO']   ?? '');
+            $TELEFONO_DUENNO = trim($_POST['TELEFONO_DUENNO'] ?? '');
+            $CORREO_DUENNO   = trim($_POST['CORREO_DUENNO']   ?? '');
+
+            if ($NOMBRE_DUENNO === '' || $TELEFONO_DUENNO === '' || $CORREO_DUENNO === '') {
+                return json_encode(Warning('Debe completar los datos del dueño antes de registrar la mascota')->toArray());
+            }
             $PM->insert([
                 'ID_PERSONA' => $ID_PERSONA,
                 'NOMBRE'     => $NOMBRE_DUENNO,
-                'TELEFONO'   => $_POST['TELEFONO_DUENNO'] ?? null,
-                'CORREO'     => $_POST['CORREO_DUENNO']   ?? null,
+                'TELEFONO'   => $TELEFONO_DUENNO,
+                'CORREO'     => $CORREO_DUENNO,
             ]);
         }
 
