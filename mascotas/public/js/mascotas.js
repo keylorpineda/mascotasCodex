@@ -98,7 +98,17 @@
       { title: 'ID', data: 'ID_MASCOTA' },
       { title: 'Mascota', data: 'NOMBRE_MASCOTA' },
       { title: 'Dueño', data: 'DUENNO' },
-      { title: 'Foto', data: 'FOTO_URL', render: d => d ? `<img src="${d}" class="img-thumbnail" style="width:40px;height:40px;">` : '' },
+       {
+        title: 'Foto',
+        data: 'FOTO_URL',
+        render: d => {
+          if (!d) return '';
+          if (typeof isValidHttpUrl === 'function' && isValidHttpUrl(d)) {
+            return `<img src="${d}" class="img-thumbnail" style="width:40px;height:40px;">`;
+          }
+          return '';
+        }
+      },
       { title: 'Estado', data: 'ESTADO', render: d => d === 'ACT' ? 'ACTIVO' : 'INACTIVO' },
       {
         title: 'Acciones', data: null, orderable: false, searchable: false, render: (_, __, row) => `
