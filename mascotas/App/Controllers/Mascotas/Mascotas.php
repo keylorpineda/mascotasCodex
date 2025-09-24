@@ -6,6 +6,52 @@ use App\Controllers\BaseController;
 
 class Mascotas extends BaseController
 {
+    private function procesarFoto(array $archivo, ?string $fotoActual = null): array
+    {
+        if (!isset($archivo['error']) || $archivo['error'] === UPLOAD_ERR_NO_FILE) {
+            return [true, $fotoActual, null];
+        }
+
+        if ($archivo['error'] !== UPLOAD_ERR_OK) {
+            return [false, null, 'No fue posible cargar la fotografía seleccionada'];
+        }
+
+        $tiposPermitidos = [
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/webp' => 'webp',
+        ];
+
+        $mime = mime_content_type($archivo['tmp_name']);
+        if ($mime === false || !array_key_exists($mime, $tiposPermitidos)) {
+            return [false, null, 'El archivo seleccionado no es una imagen válida (jpg, png o webp)'];
+        }
+
+        $extension = $tiposPermitidos[$mime];
+        $nombre    = uniqid('mascota_', true) . '.' . $extension;
+        $directorioPublico = rtrim(FCPATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'mascotas';
+
+        if (!is_dir($directorioPublico) && !mkdir($directorioPublico, 0755, true) && !is_dir($directorioPublico)) {
+            return [false, null, 'No fue posible preparar el directorio para almacenar la fotografía'];
+        }
+
+        $rutaDestino = $directorioPublico . DIRECTORY_SEPARATOR . $nombre;
+        if (!move_uploaded_file($archivo['tmp_name'], $rutaDestino)) {
+            return [false, null, 'No fue posible mover la fotografía al directorio de destino'];
+        }
+
+        if ($fotoActual !== null) {
+            $rutaActual = rtrim(FCPATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim(str_replace('public/', '', $fotoActual), DIRECTORY_SEPARATOR);
+            if (is_file($rutaActual)) {
+                @unlink($rutaActual);
+            }
+        }
+
+        $rutaPublica = 'public/uploads/mascotas/' . $nombre;
+
+        return [true, $rutaPublica, null];
+    }
+
     public function listado()
     {
         return view('mascotas/mascotas', []);
@@ -22,7 +68,7 @@ class Mascotas extends BaseController
             if (validar_permiso(['M0001', 'M0002', 'M0003'])) {
                 $NOMBRE_MASCOTA = trim($_GET['nombre']     ?? '');
                 $ID_PERSONA     = trim($_GET['idpersona']  ?? '');
-                $ESTADO         = trim($_GET['estado']     ?? '');
+                $ESTADO         = trim($_GET['estado']     ?? 'ACT');
                 $ID_MASCOTA     = trim($_GET['idmascota']  ?? '');
 
                 $MascotasModel = model('Mascotas\\MascotasModel');
@@ -43,7 +89,17 @@ class Mascotas extends BaseController
                         ->toArray()
                         ->getFirstRow();
 
-                    echo json_encode($MASCOTA ?? []);
+                    if ($MASCOTA === null) {
+                        echo json_encode(Warning('No se encontró la información solicitada', 'Sin resultados')->setPROCESS('mascotas.obtener')->setDATA([])->toArray());
+                        exit;
+                    }
+
+                    echo json_encode(
+                        Success('Mascota encontrada correctamente', 'Consulta exitosa')
+                            ->setPROCESS('mascotas.obtener')
+                            ->setDATA($MASCOTA)
+                            ->toArray()
+                    );
                     exit;
                 }
 
@@ -84,16 +140,27 @@ class Mascotas extends BaseController
                  ORDER BY p.NOMBRE ASC, m.NOMBRE_MASCOTA ASC",
                     $params
                 );
+                if (is_object($MASCOTAS) && method_exists($MASCOTAS, 'getResultArray')) {
+                    $MASCOTAS = $MASCOTAS->getResultArray();
+                }
             }
 
-            echo json_encode(['data' => $MASCOTAS]);
+            echo json_encode(
+                Success('Listado de mascotas consultado correctamente', 'Consulta exitosa')
+                    ->setPROCESS('mascotas.obtener')
+                    ->setDATA($MASCOTAS)
+                    ->toArray()
+            );
             exit;
         } catch (\Throwable $e) {
             http_response_code(500);
-            echo json_encode([
-                'data'  => [],
-                'error' => 'Error interno: ' . $e->getMessage()
-            ]);
+            echo json_encode(
+                Danger('Error interno: ' . $e->getMessage(), 'Error del servidor')
+                    ->setPROCESS('mascotas.obtener')
+                    ->setDATA([])
+                    ->setERRORS(['exception' => $e->getMessage()])
+                    ->toArray()
+            );
             exit;
         }
     }
@@ -104,7 +171,7 @@ class Mascotas extends BaseController
         is_logged_in();
 
         if (!validar_permiso(['M0001'])) {
-            return json_encode(Danger('No posees permisos para realizar esa acción')->toArray());
+            return json_encode(Danger('No posees permisos para realizar esa acción')->setPROCESS('mascotas.guardar')->toArray());
         }
 
         $ID_PERSONA     = trim($_POST['ID_PERSONA']     ?? '');
@@ -112,13 +179,26 @@ class Mascotas extends BaseController
         $FOTO_URL       = trim($_POST['FOTO_URL']       ?? '');
 
         if ($ID_PERSONA === '' || $NOMBRE_MASCOTA === '') {
-            return json_encode(Warning('Cédula del dueño y Nombre de mascota son obligatorios')->toArray());
+            return json_encode(Warning('Cédula del dueño y Nombre de mascota son obligatorios')->setPROCESS('mascotas.guardar')->toArray());
         }
+
+        $archivoFoto = $_FILES['FOTO_ARCHIVO'] ?? null;
+        if ($archivoFoto !== null) {
+            [$ok, $ruta, $error] = $this->procesarFoto($archivoFoto);
+            if (!$ok) {
+                return json_encode(Warning($error ?? 'No fue posible procesar la fotografía cargada')->setPROCESS('mascotas.guardar')->toArray());
+            }
+            $FOTO_URL = $ruta ?? $FOTO_URL;
+        }
+
         if ($FOTO_URL !== '') {
             $esUrlValida = filter_var($FOTO_URL, FILTER_VALIDATE_URL);
             $esHttp = in_array(strtolower(parse_url($FOTO_URL, PHP_URL_SCHEME) ?? ''), ['http', 'https'], true);
             if ($esUrlValida === false || !$esHttp) {
-                return json_encode(Warning('La URL de la foto debe ser válida (http o https)')->toArray());
+                $FOTO_URL = trim($FOTO_URL, '/');
+                if (strpos($FOTO_URL, 'public/') !== 0) {
+                    $FOTO_URL = 'public/' . $FOTO_URL;
+                }
             }
         }
         $PM = model('Personas\\PersonasModel');
@@ -129,13 +209,14 @@ class Mascotas extends BaseController
             $CORREO_DUENNO   = trim($_POST['CORREO_DUENNO']   ?? '');
 
             if ($NOMBRE_DUENNO === '' || $TELEFONO_DUENNO === '' || $CORREO_DUENNO === '') {
-                return json_encode(Warning('Debe completar los datos del dueño antes de registrar la mascota')->toArray());
+                return json_encode(Warning('Debe completar los datos del dueño antes de registrar la mascota')->setPROCESS('mascotas.guardar')->toArray());
             }
             $PM->insert([
                 'ID_PERSONA' => $ID_PERSONA,
                 'NOMBRE'     => $NOMBRE_DUENNO,
                 'TELEFONO'   => $TELEFONO_DUENNO,
                 'CORREO'     => $CORREO_DUENNO,
+                'ESTADO'     => 'ACT',
             ]);
         }
 
@@ -146,8 +227,10 @@ class Mascotas extends BaseController
             'ESTADO'         => 'ACT'
         ]);
 
-        if (!empty($resp)) return json_encode(Success('Mascota registrada correctamente')->toArray());
-        return json_encode(Warning('No ha sido posible registrar la mascota, intentalo de nuevo más tarde')->toArray());
+        if (!empty($resp)) {
+            return json_encode(Success('Mascota registrada correctamente')->setPROCESS('mascotas.guardar')->toArray());
+        }
+        return json_encode(Warning('No ha sido posible registrar la mascota, intentalo de nuevo más tarde')->setPROCESS('mascotas.guardar')->toArray());
     }
 
     public function editar()
@@ -155,7 +238,7 @@ class Mascotas extends BaseController
         is_logged_in();
 
         if (!validar_permiso(['M0002'])) {
-            return json_encode(Danger('No posees permisos para realizar esa acción')->toArray());
+            return json_encode(Danger('No posees permisos para realizar esa acción')->setPROCESS('mascotas.editar')->toArray());
         }
 
         $ID_MASCOTA     = (int)($_POST['ID_MASCOTA']    ?? 0);
@@ -165,13 +248,34 @@ class Mascotas extends BaseController
         $ESTADO         = trim($_POST['ESTADO']         ?? '');
 
         if ($ID_MASCOTA <= 0 || $ID_PERSONA === '' || $NOMBRE_MASCOTA === '') {
-            return json_encode(Warning('Campos incompletos')->toArray());
+            return json_encode(Warning('Campos incompletos')->setPROCESS('mascotas.editar')->toArray());
         }
+
+        $MascotasModel = model('Mascotas\\MascotasModel');
+        $registroActual = $MascotasModel
+            ->select('FOTO_URL')
+            ->where('ID_MASCOTA', $ID_MASCOTA)
+            ->toArray()
+            ->getFirstRow();
+
+        $fotoActual = $registroActual['FOTO_URL'] ?? null;
+        $archivoFoto = $_FILES['FOTO_ARCHIVO'] ?? null;
+        if ($archivoFoto !== null) {
+            [$ok, $ruta, $error] = $this->procesarFoto($archivoFoto, $fotoActual);
+            if (!$ok) {
+                return json_encode(Warning($error ?? 'No fue posible procesar la fotografía cargada')->setPROCESS('mascotas.editar')->toArray());
+            }
+            $FOTO_URL = $ruta ?? $FOTO_URL;
+        }
+
         if ($FOTO_URL !== '') {
             $esUrlValida = filter_var($FOTO_URL, FILTER_VALIDATE_URL);
             $esHttp = in_array(strtolower(parse_url($FOTO_URL, PHP_URL_SCHEME) ?? ''), ['http', 'https'], true);
             if ($esUrlValida === false || !$esHttp) {
-                return json_encode(Warning('La URL de la foto debe ser válida (http o https)')->toArray());
+                $FOTO_URL = trim($FOTO_URL, '/');
+                if (strpos($FOTO_URL, 'public/') !== 0) {
+                    $FOTO_URL = 'public/' . $FOTO_URL;
+                }
             }
         }
         $data = [
@@ -184,9 +288,11 @@ class Mascotas extends BaseController
             $data['ESTADO'] = $ESTADO;
         }
 
-        $resp = model('Mascotas\\MascotasModel')->update($data, $ID_MASCOTA);
-        if (!empty($resp)) return json_encode(Success('Mascota actualizada correctamente')->toArray());
-        return json_encode(Warning('No han habido cambios en el registro')->toArray());
+        $resp = $MascotasModel->update($data, $ID_MASCOTA);
+        if (!empty($resp)) {
+            return json_encode(Success('Mascota actualizada correctamente')->setPROCESS('mascotas.editar')->toArray());
+        }
+        return json_encode(Warning('No han habido cambios en el registro')->setPROCESS('mascotas.editar')->toArray());
     }
 
     public function remover()
@@ -194,14 +300,18 @@ class Mascotas extends BaseController
         is_logged_in();
 
         if (!validar_permiso(['M0003'])) {
-            return json_encode(Danger('No posees permisos para realizar esa acción')->toArray());
+            return json_encode(Danger('No posees permisos para realizar esa acción')->setPROCESS('mascotas.remover')->toArray());
         }
 
         $ID_MASCOTA = (int)($_POST['idmascota'] ?? 0);
-        if ($ID_MASCOTA <= 0) return json_encode(Warning('Solicitud inválida')->toArray());
+        if ($ID_MASCOTA <= 0) {
+            return json_encode(Warning('Solicitud inválida')->setPROCESS('mascotas.remover')->toArray());
+        }
 
         $resp = model('Mascotas\\MascotasModel')->update(['ESTADO' => 'INC'], $ID_MASCOTA);
-        if (!empty($resp)) return json_encode(Success('Mascota desactivada correctamente')->toArray());
-        return json_encode(Warning('No ha sido posible desactivar el registro, intentalo de nuevo más tarde')->toArray());
+        if (!empty($resp)) {
+            return json_encode(Success('Mascota desactivada correctamente')->setPROCESS('mascotas.remover')->toArray());
+        }
+        return json_encode(Warning('No ha sido posible desactivar el registro, intentalo de nuevo más tarde')->setPROCESS('mascotas.remover')->toArray());
     }
 }
