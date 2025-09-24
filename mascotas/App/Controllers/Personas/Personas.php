@@ -20,14 +20,13 @@ class Personas extends BaseController
             $NOMBRE     = trim($_GET['nombre']     ?? '');
             $TELEFONO   = trim($_GET['telefono']   ?? '');
             $CORREO     = trim($_GET['correo']     ?? '');
-            $ESTADO     = trim($_GET['estado']     ?? '');
             $ID_PERSONA = trim($_GET['idpersona']  ?? '');
 
             $PersonasModel = model('Personas\\PersonasModel');
 
             if ($ID_PERSONA !== '') {
                 $row = $PersonasModel
-                    ->select('ID_PERSONA', 'NOMBRE', 'TELEFONO', 'CORREO', 'ESTADO')
+                    ->select('ID_PERSONA', 'NOMBRE', 'TELEFONO', 'CORREO')
                     ->where('ID_PERSONA', $ID_PERSONA)
                     ->toArray()
                     ->getFirstRow();
@@ -56,14 +55,10 @@ class Personas extends BaseController
                 $where_list[] = 'CORREO LIKE ?';
                 $params[] = "%{$CORREO}%";
             }
-            if ($ESTADO !== '') {
-                $where_list[] = 'ESTADO = ?';
-                $params[] = $ESTADO;
-            }
 
             $where  = implode(' AND ', $where_list);
             $data = $PersonasModel->query(
-                "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO
+                "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO
                FROM tpersonas
               WHERE {$where}
            ORDER BY NOMBRE ASC",
@@ -83,7 +78,7 @@ class Personas extends BaseController
         if ($ced === '') return json_encode([]);
 
         $row = model('Personas\\PersonasModel')
-            ->select('ID_PERSONA', 'NOMBRE', 'TELEFONO', 'CORREO', 'ESTADO')
+            ->select('ID_PERSONA', 'NOMBRE', 'TELEFONO', 'CORREO')
             ->where('ID_PERSONA', $ced)
             ->toArray()
             ->getFirstRow();
@@ -126,7 +121,6 @@ class Personas extends BaseController
                 'NOMBRE'     => $NOMBRE,
                 'TELEFONO'   => $TELEFONO ?: null,
                 'CORREO'     => $CORREO   ?: null,
-                'ESTADO'     => 'ACT',
             ]);
         } catch (\Throwable $th) {
             log_message('error', 'Error al insertar persona: {error}', ['error' => $th->getMessage()]);
@@ -149,23 +143,17 @@ class Personas extends BaseController
         $NOMBRE     = trim($_POST['NOMBRE']     ?? '');
         $TELEFONO   = trim($_POST['TELEFONO']   ?? '');
         $CORREO     = trim($_POST['CORREO']     ?? '');
-        $ESTADO     = trim($_POST['ESTADO']     ?? '');
 
         if ($ID_PERSONA === '' || $NOMBRE === '') {
             return json_encode(Warning('Campos incompletos')->toArray());
         }
 
-        $data = [
+        $resp = model('Personas\\PersonasModel')->update([
             'ID_PERSONA' => $ID_PERSONA,
             'NOMBRE'     => $NOMBRE,
             'TELEFONO'   => $TELEFONO ?: null,
             'CORREO'     => $CORREO   ?: null,
-        ];
-        if ($ESTADO !== '') {
-            $data['ESTADO'] = $ESTADO;
-        }
-
-        $resp = model('Personas\\PersonasModel')->update($data);
+        ]);
 
         if (!empty($resp)) return json_encode(Success('Persona actualizada correctamente')->toArray());
         return json_encode(Warning('No han habido cambios en el registro')->toArray());

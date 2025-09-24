@@ -52,22 +52,12 @@
                   <input type="text" class="form-control" placeholder="Correo..." data-app-filtro-correo />
                 </label>
               </div>
-              <div class="col-sm-4 col-lg-3">
-                <label class="w-100">
-                  Estado:
-                  <select class="form-select" data-app-filtro-estado>
-                    <option value="ACT" selected>Activo</option>
-                    <option value="INC">Inactivo</option>
-                    <option value="">Todos</option>
-                  </select>
-                </label>
-              </div>
               <div class="col-sm-12 col-lg-3 d-flex align-items-end justify-content-end">
                 <button type="button" class="btn btn-primary btn-icon me-2" data-app-filtro-buscar>
                   <i class='bx bx-search-alt-2'></i> Buscar
                 </button>
                 <?php if ($permiso_guardar): ?>
-                <button type="button" class="btn btn-success btn-icon" data-bs-toggle="modal" data-bs-target="#personaModal">
+               <button type="button" class="btn btn-success btn-icon" data-bs-toggle="modal" data-bs-target="#personaCrearModal">
                   <i class="fas fa-plus"></i> Nueva Persona
                 </button>
                 <?php endif ?>
@@ -81,7 +71,6 @@
                   <th>Nombre</th>
                   <th>Teléfono</th>
                   <th>Correo</th>
-                  <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
@@ -95,22 +84,21 @@
   </div>
 </main>
 
-<?php if ($permiso_guardar || $permiso_editar): ?>
-<div class="modal fade" id="personaModal" tabindex="-1" aria-labelledby="personaModalLabel" aria-hidden="true">
+<?php if ($permiso_guardar): ?>
+<div class="modal fade" id="personaCrearModal" tabindex="-1" aria-labelledby="personaCrearModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header" style="background-color: #d2f4ea;">
-        <h5 class="modal-title" id="personaModalLabel">Registrar / Editar Persona</h5>
+       <h5 class="modal-title" id="personaCrearModalLabel">Registrar Persona</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
-      <form id="FORM_PERSONA" autocomplete="off">
+     <form id="FORM_PERSONA_CREAR" autocomplete="off">
         <div class="modal-body">
-          <input type="hidden" name="ID" />
           <div class="row g-3">
             <div class="col-sm-4">
               <label class="w-100">
                 Cédula: <span class="text-danger">*</span>
-                <input type="text" class="form-control" name="ID_PERSONA" required data-mask-cedula />
+                <input type="text" class="form-control" name="ID_PERSONA" required />
               </label>
             </div>
             <div class="col-sm-8">
@@ -128,7 +116,7 @@
             <div class="col-sm-6">
               <label class="w-100">
                 Correo:
-                <input type="email" class="form-control" name="CORREO" data-mask-email />
+                <input type="email" class="form-control" name="CORREO" />
               </label>
             </div>
           </div>
@@ -142,10 +130,56 @@
   </div>
 </div>
 <?php endif ?>
+<?php if ($permiso_editar): ?>
+<div class="modal fade" id="personaEditarModal" tabindex="-1" aria-labelledby="personaEditarModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" style="background-color: #d2f4ea;">
+        <h5 class="modal-title" id="personaEditarModalLabel">Editar Persona</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form id="FORM_PERSONA_EDITAR" autocomplete="off">
+        <div class="modal-body">
+          <input type="hidden" name="ID" />
+          <div class="row g-3">
+            <div class="col-sm-4">
+              <label class="w-100">
+                Cédula: <span class="text-danger">*</span>
+                <input type="text" class="form-control" name="ID_PERSONA" required />
+              </label>
+            </div>
+            <div class="col-sm-8">
+              <label class="w-100">
+                Nombre: <span class="text-danger">*</span>
+                <input type="text" class="form-control" name="NOMBRE" required />
+              </label>
+            </div>
+            <div class="col-sm-6">
+              <label class="w-100">
+                Teléfono:
+                <input type="text" class="form-control" name="TELEFONO" />
+              </label>
+            </div>
+            <div class="col-sm-6">
+              <label class="w-100">
+                Correo:
+                <input type="email" class="form-control" name="CORREO" />
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<?php endif ?>
 <?php endSection() ?>
 
 <?php section('foot') ?>
 <script src="<?= base_url('public/dist/datatables/datatables.min.js') ?>"></script>
-<script src="<?= base_url('public/js/form-masks.js') ?>"></script>
 <script src="<?= base_url('public/js/personas.js') ?>"></script>
 <?php endSection() ?>

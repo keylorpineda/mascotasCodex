@@ -1,9 +1,15 @@
 (function () {
-  const formulario = $('#FORM_PERSONA');
+  const formularioCrear = $('#FORM_PERSONA_CREAR');
+  const formularioEditar = $('#FORM_PERSONA_EDITAR');
+  const modalCrearEl = document.getElementById('personaCrearModal');
+  const modalEditarEl = document.getElementById('personaEditarModal');
+  const hasBootstrap = typeof bootstrap !== 'undefined' && bootstrap.Modal;
+  const modalCrear = hasBootstrap && modalCrearEl ? bootstrap.Modal.getOrCreateInstance(modalCrearEl) : null;
+  const modalEditar = hasBootstrap && modalEditarEl ? bootstrap.Modal.getOrCreateInstance(modalEditarEl) : null;
 
   function renderAcciones(_, __, row) {
     return `
-      <button type="button" class="btn btn-primary btn-sm" data-editar data-id="${row.ID_PERSONA}">
+      <button type="button" class="btn btn-primary btn-sm" data-editar data-id="${row.ID_PERSONA}" data-bs-toggle="modal" data-bs-target="#personaEditarModal">
         <i class='bx bx-edit-alt'></i>
       </button>
       <button type="button" class="btn btn-danger btn-sm" data-eliminar data-id="${row.ID_PERSONA}">
@@ -14,21 +20,18 @@
 
   function guardarPersona(ev) {
     ev.preventDefault();
-    const $btn = formulario.find('button[type="submit"]').prop('disabled', true);
-    const url = formulario.data('editar')
-      ? base_url('personas/editar')
-      : base_url('personas/guardar');
+     const $btn = formularioCrear.find('button[type="submit"]').prop('disabled', true);
     $.ajax({
-      url,
+       url: base_url('personas/guardar'),
       method: 'POST',
-      data: formulario.serialize(),
+      data: formularioCrear.serialize(),
       dataType: 'json'
     }).done(resp => {
       if (resp && resp.TIPO) {
         alerta[capitalize(resp.TIPO)](resp.MENSAJE).show();
         if (resp.TIPO === 'SUCCESS') {
-          formulario[0].reset();
-          formulario.removeData('editar');
+          formularioCrear[0].reset();
+          if (modalCrear) modalCrear.hide();
           tabla.ajax.reload(null, false);
         }
       } else {
@@ -39,17 +42,48 @@
     }).always(() => $btn.prop('disabled', false));
   }
 
-  function editarPersona() {
-    const id = $(this).data('id');
-    $.getJSON(base_url('personas/obtener'), { idpersona: id }, data => {
-      Object.entries(data || {}).forEach(([k, v]) => {
-        formulario.find(`[name="${k}"]`).val(v);
-      });
-      formulario.data('editar', true);
-      if (typeof FormMasks !== 'undefined') {
-        FormMasks.apply(formulario[0]);
+  function actualizarPersona(ev) {
+    ev.preventDefault();
+    const $btn = formularioEditar.find('button[type="submit"]').prop('disabled', true);
+    $.ajax({
+      url: base_url('personas/editar'),
+      method: 'POST',
+      data: formularioEditar.serialize(),
+      dataType: 'json'
+    }).done(resp => {
+      if (resp && resp.TIPO) {
+        alerta[capitalize(resp.TIPO)](resp.MENSAJE).show();
+        if (resp.TIPO === 'SUCCESS') {
+          if (modalEditar) modalEditar.hide();
+          tabla.ajax.reload(null, false);
+        }
+      } else {
+        alerta.Warning('Respuesta inválida del servidor').show();
       }
-    });
+    }).fail(() => {
+      alerta.Danger('No se pudo procesar la solicitud').show();
+    }).always(() => $btn.prop('disabled', false));
+  }
+
+  function editarPersona(ev) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (!formularioEditar.length) return;$.getJSON(base_url('personas/obtener'), { idpersona: id })
+      .done(data => {
+        if (!data || typeof data !== 'object') {
+          alerta.Warning('No se encontraron datos de la persona seleccionada').show();
+          return;
+        }
+        formularioEditar[0].reset();
+        Object.entries(data).forEach(([k, v]) => {
+          formularioEditar.find(`[name="${k}"]`).val(v);
+        });
+        formularioEditar.find('[name="ID"]').val(data.ID_PERSONA || id);
+        if (modalEditar) modalEditar.show();
+      })
+      .fail(() => {
+        alerta.Danger('No se pudo obtener la información de la persona').show();
+      });
   }
 
   function eliminarPersona() {
@@ -76,7 +110,6 @@
         d.nombre = $f.find('[data-app-filtro-nombre]').val() || '';
         d.telefono = $f.find('[data-app-filtro-telefono]').val() || '';
         d.correo = $f.find('[data-app-filtro-correo]').val() || '';
-        d.estado = $f.find('[data-app-filtro-estado]').val() || '';
       }
     },
     columns: [
@@ -84,7 +117,6 @@
       { data: 'NOMBRE' },
       { data: 'TELEFONO' },
       { data: 'CORREO' },
-      { data: 'ESTADO', render: d => (d === 'ACT' ? 'ACTIVO' : 'INACTIVO') },
       { data: null, render: renderAcciones, orderable: false, searchable: false }
     ],
     language: {
@@ -105,11 +137,8 @@
     tabla.ajax.reload();
   });
 
-  $('[data-app-filtro-estado]').on('change', function () {
-    tabla.ajax.reload();
-  });
-
-  formulario.on('submit', guardarPersona);
-  $('#tpersonas').on('click', '[data-editar]', editarPersona);
+ if (formularioCrear.length) formularioCrear.on('submit', guardarPersona);
+  if (formularioEditar.length) formularioEditar.on('submit', actualizarPersona);
+  if (formularioEditar.length) $('#tpersonas').on('click', '[data-editar]', editarPersona);
   $('#tpersonas').on('click', '[data-eliminar]', eliminarPersona);
 })();

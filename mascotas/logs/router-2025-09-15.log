@@ -1,0 +1,24 @@
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] RoutesEngine initialized
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Default namespace set to: App\Controllers\
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Default controller set to: Inicio\Inicio
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Default method set to: inicio
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Route registered: GET /
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Route registered: GET /inicio
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Route registered: GET /login
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Route registered: POST /login/validar
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Route registered: GET /usuarios
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Route registered: GET /usuarios/listado
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Route registered: GET /usuarios/permisos
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Route registered: GET /personas/obtener
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Route registered: GET /personas/buscar-por-cedula
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Route registered: POST /personas/guardar
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Route registered: POST /personas/editar
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Route registered: POST /personas/eliminar
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Route registered: GET /personas/listado
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Route registered: GET /mascotas/obtener
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Route registered: POST /mascotas/guardar
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Route registered: POST /mascotas/editar
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Route registered: POST /mascotas/eliminar
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Route registered: GET /mascotas/listado
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Dispatching: GET /personas/listado
+[2025-09-15 01:20:32] [INFO] [::1] [GET /mascotas/personas/listado] Calling handler: App\Controllers\Personas\Personas::listado

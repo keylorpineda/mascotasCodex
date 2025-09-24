@@ -33,7 +33,7 @@ $permiso_editar   = validar_permiso("");
       <div class="col-12">
         <div class="card">
           <div class="card-header text-center" style="background: linear-gradient(to right, #20B2AA, #00FA9A, #20B2AA)">
-            <h3 class="card-title mb-0">Gestión Integral de Mascotas y Propietarios</h3>
+            <h3 class="card-title mb-0">Gestión de Mascotas</h3>
           </div>
           <div class="card-body">
             <div class="row mb-3" data-app-filtros>
@@ -46,16 +46,16 @@ $permiso_editar   = validar_permiso("");
               <div class="col-sm-4 col-lg-3">
                 <label class="w-100">
                   Cédula Dueño:
-                  <input type="text" class="form-control" placeholder="Cédula..." data-app-filtro-cedula data-mask-cedula />
+                  <input type="text" class="form-control" placeholder="Cédula..." data-app-filtro-cedula />
                 </label>
               </div>
               <div class="col-sm-4 col-lg-2">
                 <label class="w-100">
                   Estado:
                   <select class="form-select" data-app-filtro-estado>
-                    <option value="ACT" selected>Activo</option>
-                    <option value="INC">Inactivo</option>
                     <option value="">Todos</option>
+                    <option value="ACT">Activo</option>
+                    <option value="INC">Inactivo</option>
                   </select>
                 </label>
               </div>
@@ -87,7 +87,7 @@ $permiso_editar   = validar_permiso("");
           <h5 class="modal-title" id="mascotaModalLabel">Registrar / Editar Mascota</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
-        <form id="FORM_MASCOTA" autocomplete="off" enctype="multipart/form-data">
+        <form id="FORM_MASCOTA" autocomplete="off">
           <div class="modal-body">
             <input type="hidden" name="ID_MASCOTA" />
             <div class="row g-3">
@@ -95,25 +95,25 @@ $permiso_editar   = validar_permiso("");
               <div class="col-sm-4">
                 <label class="w-100">
                   Dueño (cédula): <span class="text-danger">*</span>
-                  <input type="text" class="form-control" name="ID_PERSONA" required data-mask-cedula />
+                  <input type="text" class="form-control" name="ID_PERSONA" required />
                 </label>
               </div>
-              <div class="col-sm-4" data-duenno-field>
+              <div class="col-sm-4 d-none" data-duenno-field>
                 <label class="w-100">
                   Nombre del dueño: <span class="text-danger">*</span>
                   <input type="text" class="form-control" name="NOMBRE_DUENNO" />
                 </label>
               </div>
-              <div class="col-sm-4" data-duenno-field>
+              <div class="col-sm-4 d-none" data-duenno-field>
                 <label class="w-100">
                   Teléfono del dueño: <span class="text-danger">*</span>
                   <input type="text" class="form-control" name="TELEFONO_DUENNO" />
                 </label>
               </div>
-              <div class="col-sm-4" data-duenno-field>
+              <div class="col-sm-4 d-none" data-duenno-field>
                 <label class="w-100">
                   Correo del dueño: <span class="text-danger">*</span>
-                  <input type="email" class="form-control" name="CORREO_DUENNO" data-mask-email />
+                  <input type="email" class="form-control" name="CORREO_DUENNO" />
                 </label>
               </div>
               <div class="col-sm-4">
@@ -122,23 +122,11 @@ $permiso_editar   = validar_permiso("");
                   <input type="text" class="form-control" name="NOMBRE_MASCOTA" required />
                 </label>
               </div>
-              <div class="col-sm-6">
+              <div class="col-sm-12">
                 <label class="w-100">
-                  Foto (URL externa):
-                  <input type="url" class="form-control" name="FOTO_URL" placeholder="https://..." data-app-foto-url />
+                  Foto URL:
+                  <input type="text" class="form-control" name="FOTO_URL" />
                 </label>
-              </div>
-              <div class="col-sm-6">
-                <label class="w-100">
-                  Foto (archivo local):
-                  <input type="file" class="form-control" name="FOTO_ARCHIVO" accept="image/*" data-app-foto-archivo />
-                </label>
-              </div>
-              <div class="col-sm-12 text-center">
-                <input type="hidden" name="FOTO_ACTUAL" value="" data-app-foto-actual />
-                <div class="d-inline-block">
-                  <img src="" alt="Vista previa" class="img-thumbnail d-none" style="max-height: 140px;" data-app-foto-preview />
-                </div>
               </div>
               <div class="col-sm-4 d-none" data-app-estado-select-container>
                 <label class="w-100">
@@ -176,6 +164,5 @@ $permiso_editar   = validar_permiso("");
   };
 </script>
 <script src="<?= base_url('public/dist/datatables/datatables.min.js') ?>"></script>
-<script src="<?= base_url('public/js/form-masks.js') ?>"></script>
 <script src="<?= base_url('public/js/mascotas.js') ?>"></script>
 <?php endSection() ?>

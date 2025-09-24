@@ -2,30 +2,17 @@
   const formulario = $('#FORM_MASCOTA');
   const modal = $('#mascotaModal');
   const cedulaInput = formulario.find('[name="ID_PERSONA"]');
-  const duennoInputs = formulario.find('[data-duenno-field] input');
+  const duennoFields = formulario.find('[data-duenno-field]');
+  const duennoInputs = duennoFields.find('input');
   const estadoHiddenInput = formulario.find('[data-app-estado-hidden]');
   const estadoSelectContainer = formulario.find('[data-app-estado-select-container]');
   const estadoSelect = formulario.find('[data-app-estado-select]');
-  const fotoUrlInput = formulario.find('[data-app-foto-url]');
-  const fotoArchivoInput = formulario.find('[data-app-foto-archivo]');
-  const fotoPreview = formulario.find('[data-app-foto-preview]');
-  const fotoActualInput = formulario.find('[data-app-foto-actual]');
   let buscarPersonaTimeout = null;
   let buscarPersonaXHR = null;
-  let fotoObjectUrl = null;
 
-  function revokeFotoObjectUrl() {
-    if (fotoObjectUrl) {
-      URL.revokeObjectURL(fotoObjectUrl);
-      fotoObjectUrl = null;
-    }
-  }
-
-  function setCamposDuenoRequeridos(sonRequeridos) {
-    duennoInputs.each(function () {
-      $(this).prop('required', sonRequeridos);
-    });
-    formulario.data('persona-existe', !sonRequeridos);
+  function toggleDuennoFields(show) {
+    duennoFields.toggleClass('d-none', !show);
+    duennoInputs.prop('required', show);
   }
 
   function fillDuennoFields(values) {
@@ -41,45 +28,13 @@
     });
   }
 
-  function getPreviewUrl(valor) {
-    if (!valor) {
-      return null;
-    }
-
-    if (typeof isValidHttpUrl === 'function' && isValidHttpUrl(valor)) {
-      return valor;
-    }
-
-    if (/^https?:\/\//i.test(valor)) {
-      return valor;
-    }
-
-    return base_url(String(valor).replace(/^\/+/, ''));
-  }
-
-  function setPreview(url) {
-    if (url) {
-      fotoPreview.attr('src', url).removeClass('d-none');
-    } else {
-      fotoPreview.attr('src', '').addClass('d-none');
-    }
-  }
-
-  function resetFoto() {
-    revokeFotoObjectUrl();
-    fotoUrlInput.val('');
-    fotoArchivoInput.val('');
-    fotoActualInput.val('');
-    setPreview(null);
-  }
-
   function handlePersonaNotFound() {
     fillDuennoFields({
       NOMBRE_DUENNO: '',
       TELEFONO_DUENNO: '',
       CORREO_DUENNO: ''
     });
-    setCamposDuenoRequeridos(true);
+    toggleDuennoFields(true);
   }
 
   function handlePersonaFound(persona) {
@@ -88,7 +43,7 @@
       TELEFONO_DUENNO: persona.TELEFONO || '',
       CORREO_DUENNO: persona.CORREO || ''
     });
-    setCamposDuenoRequeridos(false);
+    toggleDuennoFields(false);
   }
 
   function consultarPersonaPorCedula(cedula) {
@@ -105,7 +60,12 @@
     }
 
     if (valor === '') {
-      handlePersonaNotFound();
+      fillDuennoFields({
+        NOMBRE_DUENNO: '',
+        TELEFONO_DUENNO: '',
+        CORREO_DUENNO: ''
+      });
+      toggleDuennoFields(false);
       return;
     }
 
@@ -133,38 +93,32 @@
         });
     }, 250);
   }
-
   function columnas() {
     return [
       { title: 'ID', data: 'ID_MASCOTA' },
       { title: 'Mascota', data: 'NOMBRE_MASCOTA' },
       { title: 'Dueño', data: 'DUENNO' },
-      {
+       {
         title: 'Foto',
         data: 'FOTO_URL',
         render: d => {
-          const url = getPreviewUrl(d);
-          if (!url) {
-            return '';
+          if (!d) return '';
+          if (typeof isValidHttpUrl === 'function' && isValidHttpUrl(d)) {
+            return `<img src="${d}" class="img-thumbnail" style="width:40px;height:40px;">`;
           }
-          return `<img src="${url}" class="img-thumbnail" style="width:40px;height:40px;">`;
+          return '';
         }
       },
-      { title: 'Estado', data: 'ESTADO', render: d => (d === 'ACT' ? 'ACTIVO' : 'INACTIVO') },
+      { title: 'Estado', data: 'ESTADO', render: d => d === 'ACT' ? 'ACTIVO' : 'INACTIVO' },
       {
-        title: 'Acciones',
-        data: null,
-        orderable: false,
-        searchable: false,
-        render: (_, __, row) => `
+        title: 'Acciones', data: null, orderable: false, searchable: false, render: (_, __, row) => `
         <button type="button" class="btn btn-primary btn-sm" data-editar data-id="${row.ID_MASCOTA}">
           <i class='bx bx-edit-alt'></i>
         </button>
         <button type="button" class="btn btn-danger btn-sm" data-eliminar data-id="${row.ID_MASCOTA}">
           <i class='bx bx-trash'></i>
         </button>
-      `
-      }
+      ` }
     ];
   }
 
@@ -181,90 +135,30 @@
     }
   }
 
-  function prepararFormularioAlta() {
+  $(document).on('click', '[data-bs-target="#mascotaModal"]', function () {
     formulario[0].reset();
     formulario.removeData('editar');
     formulario.find('[name="ID_MASCOTA"]').val('');
-    formulario.removeData('persona-existe');
     bloquearEstado(true);
     modal.find('.modal-title').text('Registrar Mascota');
-    resetFoto();
-    setCamposDuenoRequeridos(true);
+    toggleDuennoFields(false);
     fillDuennoFields({
       NOMBRE_DUENNO: '',
       TELEFONO_DUENNO: '',
       CORREO_DUENNO: ''
     });
-    if (typeof FormMasks !== 'undefined') {
-      FormMasks.apply(formulario[0]);
-    }
-  }
-
-  $(document).on('click', '[data-bs-target="#mascotaModal"]', prepararFormularioAlta);
-
-  function actualizarPreviewDesdeUrl() {
-    const valor = (fotoUrlInput.val() || '').trim();
-    if (valor === '') {
-      if (!fotoArchivoInput.length || !fotoArchivoInput[0].files.length) {
-        setPreview(fotoActualInput.val() ? getPreviewUrl(fotoActualInput.val()) : null);
-      }
-      return;
-    }
-    revokeFotoObjectUrl();
-    setPreview(getPreviewUrl(valor));
-  }
-
-  fotoUrlInput.on('input', function () {
-    const valor = (this.value || '').trim();
-    if (valor !== '') {
-      fotoArchivoInput.val('');
-    }
-    actualizarPreviewDesdeUrl();
-  });
-
-  fotoUrlInput.on('blur', actualizarPreviewDesdeUrl);
-
-  fotoArchivoInput.on('change', function () {
-    revokeFotoObjectUrl();
-    const file = this.files && this.files[0];
-    if (file) {
-      fotoUrlInput.val('');
-      fotoObjectUrl = URL.createObjectURL(file);
-      setPreview(fotoObjectUrl);
-    } else if (fotoActualInput.val()) {
-      setPreview(getPreviewUrl(fotoActualInput.val()));
-    } else {
-      setPreview(null);
-    }
   });
 
   function guardarMascota(ev) {
     ev.preventDefault();
-
-    if (!formulario[0].checkValidity()) {
-      formulario[0].reportValidity();
-      return;
-    }
-
     const $btn = formulario.find('button[type="submit"]').prop('disabled', true);
     const url = formulario.data('editar') ? URL_MASCOTAS.editar : URL_MASCOTAS.guardar;
-    const datos = new FormData(formulario[0]);
 
-    $.ajax({
-      url,
-      method: 'POST',
-      data: datos,
-      dataType: 'json',
-      processData: false,
-      contentType: false
-    })
+    $.ajax({ url, method: 'POST', data: formulario.serialize(), dataType: 'json' })
       .done(resp => {
         if (resp && resp.TIPO) {
           alerta[capitalize(resp.TIPO)](resp.MENSAJE).show();
-          if (resp.TIPO === 'SUCCESS') {
-            modal.modal('hide');
-            tabla.ajax.reload(null, false);
-          }
+          if (resp.TIPO === 'SUCCESS') { modal.modal('hide'); tabla.ajax.reload(null, false); }
         } else {
           alerta.Warning('Respuesta inválida del servidor').show();
         }
@@ -276,19 +170,18 @@
   function editarMascota() {
     const id = $(this).data('id');
     $.getJSON(URL_MASCOTAS.obtener, { idmascota: id }, data => {
-      prepararFormularioAlta();
-      Object.entries(data || {}).forEach(([k, v]) => {
-        formulario.find(`[name="${k}"]`).val(v);
-      });
+      formulario[0].reset();
+      Object.entries(data || {}).forEach(([k, v]) => { formulario.find(`[name="${k}"]`).val(v); });
       formulario.data('editar', true);
       bloquearEstado(false);
-      fotoActualInput.val(data && data.FOTO_URL ? data.FOTO_URL : '');
-      if (data && data.FOTO_URL) {
-        setPreview(getPreviewUrl(data.FOTO_URL));
-        fotoUrlInput.val(data.FOTO_URL);
-      }
       modal.find('.modal-title').text('Editar Mascota');
       modal.modal('show');
+      toggleDuennoFields(false);
+      fillDuennoFields({
+        NOMBRE_DUENNO: '',
+        TELEFONO_DUENNO: '',
+        CORREO_DUENNO: ''
+      });
       consultarPersonaPorCedula(formulario.find('[name="ID_PERSONA"]').val());
     });
   }
@@ -356,14 +249,7 @@
     dom: "<'row'<'col-sm-6'l><'col-sm-6 text-end'f>>rt<'row'<'col-sm-6'i><'col-sm-6'p>>"
   });
 
-  $('[data-app-filtro-buscar]').on('click', function () {
-    tabla.ajax.reload();
-  });
-
-  $('[data-app-filtro-estado]').on('change', function () {
-    tabla.ajax.reload();
-  });
-
+  $('[data-app-filtro-buscar]').on('click', function () { tabla.ajax.reload(); });
   formulario.on('submit', guardarMascota);
   $('#tmascotas').on('click', '[data-editar]', editarMascota);
   $('#tmascotas').on('click', '[data-eliminar]', eliminarMascota);
