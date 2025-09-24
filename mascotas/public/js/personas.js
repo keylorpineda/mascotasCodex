@@ -46,6 +46,9 @@
         formulario.find(`[name="${k}"]`).val(v);
       });
       formulario.data('editar', true);
+      if (typeof FormMasks !== 'undefined') {
+        FormMasks.apply(formulario[0]);
+      }
     });
   }
 
@@ -73,6 +76,7 @@
         d.nombre = $f.find('[data-app-filtro-nombre]').val() || '';
         d.telefono = $f.find('[data-app-filtro-telefono]').val() || '';
         d.correo = $f.find('[data-app-filtro-correo]').val() || '';
+        d.estado = $f.find('[data-app-filtro-estado]').val() || '';
       }
     },
     columns: [
@@ -80,6 +84,7 @@
       { data: 'NOMBRE' },
       { data: 'TELEFONO' },
       { data: 'CORREO' },
+      { data: 'ESTADO', render: d => (d === 'ACT' ? 'ACTIVO' : 'INACTIVO') },
       { data: null, render: renderAcciones, orderable: false, searchable: false }
     ],
     language: {
@@ -97,6 +102,10 @@
   });
 
   $('[data-app-filtro-buscar]').on('click', function () {
+    tabla.ajax.reload();
+  });
+
+  $('[data-app-filtro-estado]').on('change', function () {
     tabla.ajax.reload();
   });
 
