@@ -49,7 +49,31 @@ class Personas extends BaseController
                         ->toArray()
                 );
             }
+            $NOMBRE     = trim($_GET['nombre']     ?? '');
+            $TELEFONO   = trim($_GET['telefono']   ?? '');
+            $CORREO     = trim($_GET['correo']     ?? '');
+            $ESTADO     = trim($_GET['estado']     ?? 'ACT');
+            $ID_PERSONA = preg_replace('/\D/', '', $_GET['idpersona']  ?? '');
 
+            $PersonasModel = model('Personas\\PersonasModel');
+
+            if ($ID_PERSONA !== '') {
+                $row = $PersonasModel
+                    ->select('ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO')
+                    ->where('ID_PERSONA', $ID_PERSONA)
+                    ->toArray()
+                    ->getFirstRow();
+
+                if ($row === null) {
+                    echo json_encode(
+                        Warning('No se encontraron registros', 'Sin resultados')
+                            ->setSTATUS(false)
+                            ->setPROCESS('personas.obtener')
+                            ->setDATA([])
+                            ->toArray()
+                    );
+                    exit;
+                }
             $NOMBRE     = trim($_GET['nombre']     ?? '');
             $TELEFONO   = trim($_GET['telefono']   ?? '');
             $CORREO     = trim($_GET['correo']     ?? '');
@@ -117,7 +141,6 @@ class Personas extends BaseController
                ORDER BY NOMBRE ASC",
                 $params
             );
-
             if (!is_array($data)) {
                 $data = [];
             }
@@ -193,7 +216,6 @@ class Personas extends BaseController
         if (!validar_permiso(['PE0001'])) {
             return $this->response->setJSON(Danger('No posees permisos para realizar esa acción')->toArray());
         }
-
         $ID_PERSONA = $this->normalizarCedula($_POST['ID_PERSONA'] ?? '');
         $NOMBRE     = trim($_POST['NOMBRE']     ?? '');
         $TELEFONO   = trim($_POST['TELEFONO']   ?? '');
@@ -306,7 +328,6 @@ class Personas extends BaseController
         if (!validar_permiso(['PE0003'])) {
             return $this->response->setJSON(Danger('No posees permisos para realizar esa acción')->toArray());
         }
-
         $ID_PERSONA = $this->normalizarCedula($_POST['idpersona'] ?? '');
         if ($ID_PERSONA === '') {
             return $this->response->setJSON(
@@ -315,7 +336,6 @@ class Personas extends BaseController
                     ->toArray()
             );
         }
-
         $persona = $this->obtenerPersonaPorCedulaLimpia($ID_PERSONA);
 
         if ($persona === null) {
