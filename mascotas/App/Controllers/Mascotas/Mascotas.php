@@ -6,6 +6,19 @@ use App\Controllers\BaseController;
 
 class Mascotas extends BaseController
 {
+    private function traducirErrorSubida(int $codigo): string
+    {
+        return match ($codigo) {
+            UPLOAD_ERR_INI_SIZE,
+            UPLOAD_ERR_FORM_SIZE => 'La fotografía supera el tamaño máximo permitido.',
+            UPLOAD_ERR_PARTIAL   => 'La carga de la fotografía se interrumpió. Intenta nuevamente.',
+            UPLOAD_ERR_NO_TMP_DIR => 'No se encontró un directorio temporal para almacenar la fotografía.',
+            UPLOAD_ERR_CANT_WRITE => 'No fue posible guardar la fotografía en el servidor.',
+            UPLOAD_ERR_EXTENSION  => 'Una extensión del servidor impidió cargar la fotografía.',
+            default               => 'No se pudo cargar la fotografía seleccionada.',
+        };
+    }
+
     private function normalizarCedula(?string $valor): string
     {
         return preg_replace('/\D+/', '', $valor ?? '') ?: '';
@@ -60,7 +73,7 @@ class Mascotas extends BaseController
         }
 
         if ($archivo['error'] !== UPLOAD_ERR_OK) {
-            return [false, null, 'No fue posible cargar la fotografía seleccionada'];
+            return [false, null, $this->traducirErrorSubida((int) $archivo['error'])];
         }
 
         $tiposPermitidos = [
@@ -76,7 +89,7 @@ class Mascotas extends BaseController
 
         $extension = $tiposPermitidos[$mime];
         $nombre    = uniqid('mascota_', true) . '.' . $extension;
-        $directorioPublico = rtrim(FCPATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'mascotas';
+        $directorioPublico = rtrim(base_dir('public/uploads/mascotas'), DIRECTORY_SEPARATOR);
 
         if (!is_dir($directorioPublico) && !mkdir($directorioPublico, 0755, true) && !is_dir($directorioPublico)) {
             return [false, null, 'No fue posible preparar el directorio para almacenar la fotografía'];
@@ -88,7 +101,8 @@ class Mascotas extends BaseController
         }
 
         if ($fotoActual !== null) {
-            $rutaActual = rtrim(FCPATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim(str_replace('public/', '', $fotoActual), DIRECTORY_SEPARATOR);
+            $relativa = ltrim($fotoActual, '/\\');
+            $rutaActual = base_dir($relativa);
             if (is_file($rutaActual)) {
                 @unlink($rutaActual);
             }
@@ -218,13 +232,15 @@ class Mascotas extends BaseController
     public function guardar()
     {
         is_logged_in();
+        header('Content-Type: application/json; charset=utf-8');
 
         if (!validar_permiso(['M0001'])) {
-            return $this->response->setJSON(
+            echo json_encode(
                 Danger('No posees permisos para realizar esa acción')
                     ->setPROCESS('mascotas.guardar')
                     ->toArray()
             );
+            exit;
         }
 
         $ID_PERSONA     = $this->normalizarCedula($_POST['ID_PERSONA']     ?? '');
@@ -232,11 +248,12 @@ class Mascotas extends BaseController
         $FOTO_ACTUAL    = trim($_POST['FOTO_ACTUAL']    ?? '');
 
         if ($ID_PERSONA === '' || $NOMBRE_MASCOTA === '') {
-            return $this->response->setJSON(
-                Warning('Cédula del dueño y Nombre de mascota son obligatorios')
+            echo json_encode(
+                Warning('Debes completar la cédula del dueño y el nombre de la mascota para continuar.')
                     ->setPROCESS('mascotas.guardar')
                     ->toArray()
             );
+            exit;
         }
 
         $archivoFoto = $_FILES['FOTO_ARCHIVO'] ?? null;
@@ -244,11 +261,12 @@ class Mascotas extends BaseController
         if ($archivoFoto !== null) {
             [$ok, $ruta, $error] = $this->procesarFoto($archivoFoto, null);
             if (!$ok) {
-                return $this->response->setJSON(
+                echo json_encode(
                     Warning($error ?? 'No fue posible procesar la fotografía cargada')
                         ->setPROCESS('mascotas.guardar')
                         ->toArray()
                 );
+                exit;
             }
             $fotoFinal = $ruta ?? $fotoFinal;
         }
@@ -264,11 +282,12 @@ class Mascotas extends BaseController
                 $CORREO_DUENNO   = trim($_POST['CORREO_DUENNO']   ?? '');
 
                 if ($NOMBRE_DUENNO === '' || $TELEFONO_DUENNO === '' || $CORREO_DUENNO === '') {
-                    return $this->response->setJSON(
-                        Warning('Debe completar los datos del dueño antes de registrar la mascota')
+                    echo json_encode(
+                        Warning('Para registrar a la mascota debemos contar con el nombre, teléfono y correo del dueño nuevo.')
                             ->setPROCESS('mascotas.guardar')
                             ->toArray()
                     );
+                    exit;
                 }
 
                 $insertPersona = $PersonasModel->insert([
@@ -299,24 +318,27 @@ class Mascotas extends BaseController
                 $errores = $MascotasModel->errors();
                 $mensaje = !empty($errores)
                     ? implode(' ', $errores)
-                    : 'No ha sido posible registrar la mascota, intentalo de nuevo más tarde.';
+                    : 'No ha sido posible registrar la mascota, por favor inténtalo de nuevo más tarde.';
 
                 throw new \RuntimeException($mensaje);
             }
 
-            return $this->response->setJSON(
-                Success('Mascota registrada correctamente')
+            echo json_encode(
+                Success('La mascota se registró correctamente.')
                     ->setPROCESS('mascotas.guardar')
                     ->toArray()
             );
+            exit;
         } catch (\Throwable $e) {
             log_message('error', 'Error al guardar mascota: {error}', ['error' => $e->getMessage()]);
 
-            return $this->response->setStatusCode(400)->setJSON(
-                Danger($e->getMessage(), 'No se pudo guardar la mascota')
+            http_response_code(400);
+            echo json_encode(
+                Danger('Ocurrió un problema al registrar la mascota: ' . $e->getMessage(), 'No se pudo completar el registro')
                     ->setPROCESS('mascotas.guardar')
                     ->toArray()
             );
+            exit;
         }
     }
 
