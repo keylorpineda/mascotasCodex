@@ -122,6 +122,38 @@ if (!function_exists('base_url')) {
     }
 }
 
+if (!function_exists('log_message')) {
+    function log_message(string $level, string $message, array $context = []): void
+    {
+        static $logger = null;
+
+        if ($logger === null) {
+            $logPath = null;
+
+            try {
+                $logPath = base_dir('logs');
+
+                if (!is_dir($logPath)) {
+                    @mkdir($logPath, 0755, true);
+                }
+            } catch (\Throwable $e) {
+                $logPath = null;
+            }
+
+            $logger = new \App\Core\Logger\SimpleLogger($logPath);
+        }
+
+        $level = strtolower($level);
+
+        if (method_exists($logger, $level)) {
+            $logger->{$level}($message, $context);
+            return;
+        }
+
+        $logger->log($level, $message, $context);
+    }
+}
+
 if (!function_exists('validar_origen_peticion')) {
 	function validar_origen_peticion(array $origins = []): void
 	{
