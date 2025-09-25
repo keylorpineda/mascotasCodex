@@ -124,13 +124,15 @@
       },
       { title: 'Estado', data: 'ESTADO', render: d => d === 'ACT' ? 'ACTIVO' : 'INACTIVO' },
       {
-        title: 'Acciones', data: null, orderable: false, searchable: false, render: (_, __, row) => `
-        <button type="button" class="btn btn-primary btn-sm" data-editar data-id="${row.ID_MASCOTA}">
-          <i class='bx bx-edit-alt'></i>
-        </button>
-        <button type="button" class="btn btn-danger btn-sm" data-eliminar data-id="${row.ID_MASCOTA}">
-          <i class='bx bx-trash'></i>
-        </button>
+        title: 'Acciones', data: null, orderable: false, searchable: false, className: 'text-center', render: (_, __, row) => `
+        <div class="d-flex justify-content-center gap-2">
+          <button type="button" class="btn btn-outline-primary btn-sm rounded-pill" data-editar data-id="${row.ID_MASCOTA}">
+            <i class='bx bx-edit-alt'></i>
+          </button>
+          <button type="button" class="btn btn-outline-danger btn-sm rounded-pill" data-eliminar data-id="${row.ID_MASCOTA}">
+            <i class='bx bx-block'></i>
+          </button>
+        </div>
       ` }
     ];
   }
@@ -219,7 +221,7 @@
 
   function eliminarMascota() {
     const id = $(this).data('id');
-    confirmar.Warning('¿Desea eliminar el registro?', 'Atención').then(resp => {
+    confirmar.Warning('¿Desea inactivar esta mascota?', 'Confirmación requerida').then(resp => {
       if (!resp) return;
       $.post(URL_MASCOTAS.eliminar, { idmascota: id }, r => {
         const tipo = (r && (r.type || r.TIPO) || '').toString().toUpperCase();
@@ -230,7 +232,7 @@
         } else {
           alerta.Warning('Respuesta inválida del servidor').show();
         }
-      }, 'json').fail(() => alerta.Danger('No se pudo eliminar').show());
+      }, 'json').fail(() => alerta.Danger('No se pudo inactivar').show());
     });
   }
 
@@ -242,12 +244,6 @@
         if (Array.isArray(resp.data)) return resp.data;
         if (resp.data && Array.isArray(resp.data.data)) return resp.data.data;
         return resp.data && typeof resp.data === 'object' ? Object.values(resp.data) : [];
-      },
-      data: function (d) {
-        const $f = $('[data-app-filtros]');
-        d.nombre = $f.find('[data-app-filtro-nombre]').val() || '';
-        d.idpersona = $f.find('[data-app-filtro-cedula]').val() || '';
-        d.estado = $f.find('[data-app-filtro-estado]').val() || '';
       },
       error: function (xhr) {
         let mensaje = 'Ocurrió un error al obtener el listado de mascotas.';
@@ -287,7 +283,6 @@
     dom: "<'row'<'col-sm-6'l><'col-sm-6 text-end'f>>rt<'row'<'col-sm-6'i><'col-sm-6'p>>"
   });
 
-  $('[data-app-filtro-buscar]').on('click', function () { tabla.ajax.reload(); });
   formulario.on('submit', guardarMascota);
   $('#tmascotas').on('click', '[data-editar]', editarMascota);
   $('#tmascotas').on('click', '[data-eliminar]', eliminarMascota);

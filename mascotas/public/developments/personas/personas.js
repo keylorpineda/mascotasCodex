@@ -31,12 +31,14 @@
 
   function renderAcciones(_, __, row) {
     return `
-      <button type="button" class="btn btn-primary btn-sm" data-editar data-id="${row.ID_PERSONA}" data-bs-toggle="modal" data-bs-target="#personaEditarModal">
-        <i class='bx bx-edit-alt'></i>
-      </button>
-      <button type="button" class="btn btn-danger btn-sm" data-eliminar data-id="${row.ID_PERSONA}">
-        <i class='bx bx-trash'></i>
-      </button>
+      <div class="d-flex justify-content-center gap-2">
+        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill" data-editar data-id="${row.ID_PERSONA}" data-bs-toggle="modal" data-bs-target="#personaEditarModal">
+          <i class='bx bx-edit-alt'></i>
+        </button>
+        <button type="button" class="btn btn-outline-danger btn-sm rounded-pill" data-eliminar data-id="${row.ID_PERSONA}">
+          <i class='bx bx-user-x'></i>
+        </button>
+      </div>
     `;
   }
 
@@ -112,12 +114,12 @@
 
   function eliminarPersona() {
     const id = $(this).data('id');
-    confirmar.Warning('¿Desea eliminar el registro?', 'Atención').then(resp => {
+    confirmar.Warning('¿Desea inactivar a esta persona?', 'Confirmación requerida').then(resp => {
       if (!resp) return;
       $.post(base_url('personas/eliminar'), { idpersona: id }, r => {
-        const tipo = mostrarAlerta(r, 'No se pudo eliminar el registro.');
+        const tipo = mostrarAlerta(r, 'No se pudo inactivar el registro.');
         if (tipo === 'SUCCESS') tabla.ajax.reload(null, false);
-      }, 'json').fail(() => alerta.Danger('No se pudo eliminar').show());
+      }, 'json').fail(() => alerta.Danger('No se pudo inactivar').show());
     });
   }
 
@@ -129,13 +131,6 @@
         if (Array.isArray(resp.data)) return resp.data;
         if (resp.data && Array.isArray(resp.data.data)) return resp.data.data;
         return resp.data && typeof resp.data === 'object' ? Object.values(resp.data) : [];
-      },
-      data: function (d) {
-        const $f = $('[data-app-filtros]');
-        d.nombre = $f.find('[data-app-filtro-nombre]').val() || '';
-        d.telefono = $f.find('[data-app-filtro-telefono]').val() || '';
-        d.correo = $f.find('[data-app-filtro-correo]').val() || '';
-        d.estado = $f.find('[data-app-filtro-estado]').val() || '';
       }
     },
     columns: [
@@ -144,7 +139,7 @@
       { data: 'TELEFONO' },
       { data: 'CORREO' },
       { data: 'ESTADO', render: d => d === 'ACT' ? 'ACTIVO' : 'INACTIVO' },
-      { data: null, render: renderAcciones, orderable: false, searchable: false }
+      { data: null, render: renderAcciones, orderable: false, searchable: false, className: 'text-center' }
     ],
     language: {
       lengthMenu: "_MENU_ por página",
@@ -158,10 +153,6 @@
       search: "Buscar:"
     },
     dom: "<'row'<'col-sm-6'l><'col-sm-6 text-end'f>>" + "rt" + "<'row'<'col-sm-6'i><'col-sm-6'p>>"
-  });
-
-  $('[data-app-filtro-buscar]').on('click', function () {
-    tabla.ajax.reload();
   });
 
   if (formularioCrear.length) formularioCrear.on('submit', guardarPersona);
