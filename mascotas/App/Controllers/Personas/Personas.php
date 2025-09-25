@@ -17,41 +17,22 @@ class Personas extends BaseController
             return null;
         }
 
-        $resultado = model('Personas\\PersonasModel')->query(
-            "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO
-               FROM tpersonas
-              WHERE REPLACE(ID_PERSONA, '-', '') = ?
-              LIMIT 1",
-            [$cedulaLimpia]
-        );
+        try {
+            $pdo = \data_base();
+            $stmt = $pdo->prepare(
+                "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO
+                   FROM tpersonas
+                  WHERE REPLACE(ID_PERSONA, '-', '') = ?
+                  LIMIT 1"
+            );
+            $stmt->execute([$cedulaLimpia]);
+            $fila = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-        if (is_object($resultado)) {
-            if (method_exists($resultado, 'getFirstRow')) {
-                $fila = $resultado->getFirstRow('array');
-                if (!empty($fila)) {
-                    return $fila;
-                }
-            }
-
-            if (method_exists($resultado, 'getResultArray')) {
-                $filas = $resultado->getResultArray();
-                if (!empty($filas)) {
-                    return $filas[0];
-                }
-            }
+            return $fila !== false ? $fila : null;
+        } catch (\Throwable $e) {
+            log_message('error', 'Error al consultar persona por cédula limpia: {error}', ['error' => $e->getMessage()]);
+            return null;
         }
-
-        if (is_array($resultado) && !empty($resultado)) {
-            $primero = reset($resultado);
-            if (is_array($primero)) {
-                return $primero;
-            }
-            if (is_object($primero)) {
-                return (array) $primero;
-            }
-        }
-
-        return null;
     }
 
     public function listado()
@@ -133,27 +114,20 @@ class Personas extends BaseController
             }
 
             $where = implode(' AND ', $where_list);
-            $PersonasModel = model('Personas\\PersonasModel');
-            $data = $PersonasModel->query(
-                "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO
-                   FROM tpersonas
-                  WHERE {$where}
-               ORDER BY NOMBRE ASC",
-                $params
-            );
+            $data = [];
 
-            if (is_object($data)) {
-                if (method_exists($data, 'getResultArray')) {
-                    $data = $data->getResultArray();
-                } elseif (method_exists($data, 'getResult')) {
-                    $data = $data->getResult('array');
-                } else {
-                    $data = (array) $data;
-                }
-            }
-
-            if (!is_array($data)) {
-                $data = [];
+            try {
+                $pdo = \data_base();
+                $stmt = $pdo->prepare(
+                    "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO
+                       FROM tpersonas
+                      WHERE {$where}
+                   ORDER BY NOMBRE ASC"
+                );
+                $stmt->execute($params);
+                $data = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+            } catch (\PDOException $e) {
+                throw $e;
             }
 
             return $this->response->setJSON(
@@ -247,17 +221,20 @@ class Personas extends BaseController
             );
         }
 
-        $PersonasModel = model('Personas\\PersonasModel');
-
         try {
-            $resp = $PersonasModel->insert([
-                'ID_PERSONA' => $ID_PERSONA,
-                'NOMBRE'     => $NOMBRE,
-                'TELEFONO'   => $TELEFONO ?: null,
-                'CORREO'     => $CORREO   ?: null,
-                'ESTADO'     => 'ACT',
+            $pdo = \data_base();
+            $stmt = $pdo->prepare(
+                "INSERT INTO tpersonas (ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO)
+                 VALUES (?, ?, ?, ?, ?)"
+            );
+            $stmt->execute([
+                $ID_PERSONA,
+                $NOMBRE,
+                $TELEFONO !== '' ? $TELEFONO : null,
+                $CORREO   !== '' ? $CORREO   : null,
+                'ACT',
             ]);
-        } catch (\Throwable $th) {
+        } catch (\PDOException $th) {
             log_message('error', 'Error al insertar persona: {error}', ['error' => $th->getMessage()]);
 
             return $this->response->setJSON(
@@ -267,16 +244,8 @@ class Personas extends BaseController
             );
         }
 
-        if ($resp !== null && $resp !== false) {
-            return $this->response->setJSON(
-                Success('Persona creada correctamente')
-                    ->setPROCESS('personas.guardar')
-                    ->toArray()
-            );
-        }
-
         return $this->response->setJSON(
-            Warning('No ha sido posible crear la persona, intentalo de nuevo más tarde')
+            Success('Persona creada correctamente')
                 ->setPROCESS('personas.guardar')
                 ->toArray()
         );
@@ -291,6 +260,7 @@ class Personas extends BaseController
         }
 
         $ID_PERSONA = $this->normalizarCedula($_POST['ID_PERSONA'] ?? '');
+        $ID_ORIGINAL = $this->normalizarCedula($_POST['ID'] ?? '') ?: $ID_PERSONA;
         $NOMBRE     = trim($_POST['NOMBRE']     ?? '');
         $TELEFONO   = trim($_POST['TELEFONO']   ?? '');
         $CORREO     = trim($_POST['CORREO']     ?? '');
@@ -303,22 +273,54 @@ class Personas extends BaseController
             );
         }
 
-        $dataUpdate = [
-            'ID_PERSONA' => $ID_PERSONA,
-            'NOMBRE'     => $NOMBRE,
-            'TELEFONO'   => $TELEFONO ?: null,
-            'CORREO'     => $CORREO   ?: null,
-        ];
-
-        if (isset($_POST['ESTADO']) && trim($_POST['ESTADO']) !== '') {
-            $dataUpdate['ESTADO'] = trim($_POST['ESTADO']);
+        if ($ID_PERSONA !== $ID_ORIGINAL && $this->obtenerPersonaPorCedulaLimpia($ID_PERSONA) !== null) {
+            return $this->response->setJSON(
+                Warning('Ya existe una persona con la nueva cédula ingresada')
+                    ->setPROCESS('personas.editar')
+                    ->toArray()
+            );
         }
 
-        $resp = model('Personas\\PersonasModel')->update($dataUpdate);
+        $valores = [
+            $ID_PERSONA,
+            $NOMBRE,
+            $TELEFONO !== '' ? $TELEFONO : null,
+            $CORREO   !== '' ? $CORREO   : null,
+        ];
+        $set = [
+            'ID_PERSONA = ?',
+            'NOMBRE = ?',
+            'TELEFONO = ?',
+            'CORREO = ?',
+        ];
 
-        if (!empty($resp)) {
+        $estado = isset($_POST['ESTADO']) ? trim($_POST['ESTADO']) : '';
+        if ($estado !== '') {
+            $set[] = 'ESTADO = ?';
+            $valores[] = $estado;
+        }
+
+        $valores[] = $ID_ORIGINAL;
+
+        try {
+            $pdo = \data_base();
+            $stmt = $pdo->prepare(
+                'UPDATE tpersonas SET ' . implode(', ', $set) . " WHERE REPLACE(ID_PERSONA, '-', '') = ?"
+            );
+            $stmt->execute($valores);
+
+            if ($stmt->rowCount() > 0) {
+                return $this->response->setJSON(
+                    Success('Persona actualizada correctamente')
+                        ->setPROCESS('personas.editar')
+                        ->toArray()
+                );
+            }
+        } catch (\PDOException $e) {
+            log_message('error', 'Error al actualizar persona: {error}', ['error' => $e->getMessage()]);
+
             return $this->response->setJSON(
-                Success('Persona actualizada correctamente')
+                Danger('No fue posible actualizar la persona: ' . $e->getMessage())
                     ->setPROCESS('personas.editar')
                     ->toArray()
             );
@@ -364,10 +366,23 @@ class Personas extends BaseController
             );
         }
 
-        $ok = model('Personas\\PersonasModel')->update(['ESTADO' => 'INC'], $persona['ID_PERSONA']);
-        if (!empty($ok)) {
+        try {
+            $pdo = \data_base();
+            $stmt = $pdo->prepare("UPDATE tpersonas SET ESTADO = 'INC' WHERE REPLACE(ID_PERSONA, '-', '') = ?");
+            $stmt->execute([$ID_PERSONA]);
+
+            if ($stmt->rowCount() > 0) {
+                return $this->response->setJSON(
+                    Success('Persona inactivada correctamente')
+                        ->setPROCESS('personas.remover')
+                        ->toArray()
+                );
+            }
+        } catch (\PDOException $e) {
+            log_message('error', 'Error al inactivar persona: {error}', ['error' => $e->getMessage()]);
+
             return $this->response->setJSON(
-                Success('Persona inactivada correctamente')
+                Danger('No ha sido posible inactivar el registro: ' . $e->getMessage())
                     ->setPROCESS('personas.remover')
                     ->toArray()
             );
