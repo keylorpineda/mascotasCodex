@@ -14,8 +14,8 @@ class Personas extends BaseController
     public function obtener()
     {
         is_logged_in();
-
         header('Content-Type: application/json; charset=utf-8');
+
 
         try {
             if (!validar_permiso(['PE0001', 'PE0002', 'PE0003'])) {
@@ -26,7 +26,6 @@ class Personas extends BaseController
                 );
                 exit;
             }
-
             $NOMBRE     = trim($_GET['nombre']     ?? '');
             $TELEFONO   = trim($_GET['telefono']   ?? '');
             $CORREO     = trim($_GET['correo']     ?? '');
