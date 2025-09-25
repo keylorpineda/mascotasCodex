@@ -67,7 +67,7 @@ class Mascotas extends BaseController
             $MASCOTAS = [];
             if (validar_permiso(['M0001', 'M0002', 'M0003'])) {
                 $NOMBRE_MASCOTA = trim($_GET['nombre']     ?? '');
-                $ID_PERSONA     = trim($_GET['idpersona']  ?? '');
+                $ID_PERSONA     = preg_replace('/\D/', '', $_GET['idpersona']  ?? '');
                 $ESTADO         = trim($_GET['estado']     ?? 'ACT');
                 $ID_MASCOTA     = trim($_GET['idmascota']  ?? '');
 
@@ -174,32 +174,22 @@ class Mascotas extends BaseController
             return json_encode(Danger('No posees permisos para realizar esa acción')->setPROCESS('mascotas.guardar')->toArray());
         }
 
-        $ID_PERSONA     = trim($_POST['ID_PERSONA']     ?? '');
+        $ID_PERSONA     = preg_replace('/\D/', '', $_POST['ID_PERSONA']     ?? '');
         $NOMBRE_MASCOTA = trim($_POST['NOMBRE_MASCOTA'] ?? '');
-        $FOTO_URL       = trim($_POST['FOTO_URL']       ?? '');
+        $FOTO_ACTUAL    = trim($_POST['FOTO_ACTUAL']    ?? '');
 
         if ($ID_PERSONA === '' || $NOMBRE_MASCOTA === '') {
             return json_encode(Warning('Cédula del dueño y Nombre de mascota son obligatorios')->setPROCESS('mascotas.guardar')->toArray());
         }
 
         $archivoFoto = $_FILES['FOTO_ARCHIVO'] ?? null;
+        $fotoFinal = $FOTO_ACTUAL !== '' ? $FOTO_ACTUAL : null;
         if ($archivoFoto !== null) {
-            [$ok, $ruta, $error] = $this->procesarFoto($archivoFoto);
+            [$ok, $ruta, $error] = $this->procesarFoto($archivoFoto, null);
             if (!$ok) {
                 return json_encode(Warning($error ?? 'No fue posible procesar la fotografía cargada')->setPROCESS('mascotas.guardar')->toArray());
             }
-            $FOTO_URL = $ruta ?? $FOTO_URL;
-        }
-
-        if ($FOTO_URL !== '') {
-            $esUrlValida = filter_var($FOTO_URL, FILTER_VALIDATE_URL);
-            $esHttp = in_array(strtolower(parse_url($FOTO_URL, PHP_URL_SCHEME) ?? ''), ['http', 'https'], true);
-            if ($esUrlValida === false || !$esHttp) {
-                $FOTO_URL = trim($FOTO_URL, '/');
-                if (strpos($FOTO_URL, 'public/') !== 0) {
-                    $FOTO_URL = 'public/' . $FOTO_URL;
-                }
-            }
+            $fotoFinal = $ruta ?? $fotoFinal;
         }
         $PM = model('Personas\\PersonasModel');
         $existe = $PM->select('ID_PERSONA')->where('ID_PERSONA', $ID_PERSONA)->toArray()->getFirstRow();
@@ -223,7 +213,7 @@ class Mascotas extends BaseController
         $resp = model('Mascotas\\MascotasModel')->insert([
             'ID_PERSONA'     => $ID_PERSONA,
             'NOMBRE_MASCOTA' => $NOMBRE_MASCOTA,
-            'FOTO_URL'       => $FOTO_URL !== '' ? $FOTO_URL : null,
+            'FOTO_URL'       => $fotoFinal !== null && $fotoFinal !== '' ? $fotoFinal : null,
             'ESTADO'         => 'ACT'
         ]);
 
@@ -242,9 +232,9 @@ class Mascotas extends BaseController
         }
 
         $ID_MASCOTA     = (int)($_POST['ID_MASCOTA']    ?? 0);
-        $ID_PERSONA     = trim($_POST['ID_PERSONA']     ?? '');
+        $ID_PERSONA     = preg_replace('/\D/', '', $_POST['ID_PERSONA']     ?? '');
         $NOMBRE_MASCOTA = trim($_POST['NOMBRE_MASCOTA'] ?? '');
-        $FOTO_URL       = trim($_POST['FOTO_URL']       ?? '');
+        $FOTO_ACTUAL    = trim($_POST['FOTO_ACTUAL']    ?? '');
         $ESTADO         = trim($_POST['ESTADO']         ?? '');
 
         if ($ID_MASCOTA <= 0 || $ID_PERSONA === '' || $NOMBRE_MASCOTA === '') {
@@ -258,31 +248,20 @@ class Mascotas extends BaseController
             ->toArray()
             ->getFirstRow();
 
-        $fotoActual = $registroActual['FOTO_URL'] ?? null;
+        $fotoActual = $FOTO_ACTUAL !== '' ? $FOTO_ACTUAL : ($registroActual['FOTO_URL'] ?? null);
         $archivoFoto = $_FILES['FOTO_ARCHIVO'] ?? null;
         if ($archivoFoto !== null) {
             [$ok, $ruta, $error] = $this->procesarFoto($archivoFoto, $fotoActual);
             if (!$ok) {
                 return json_encode(Warning($error ?? 'No fue posible procesar la fotografía cargada')->setPROCESS('mascotas.editar')->toArray());
             }
-            $FOTO_URL = $ruta ?? $FOTO_URL;
-        }
-
-        if ($FOTO_URL !== '') {
-            $esUrlValida = filter_var($FOTO_URL, FILTER_VALIDATE_URL);
-            $esHttp = in_array(strtolower(parse_url($FOTO_URL, PHP_URL_SCHEME) ?? ''), ['http', 'https'], true);
-            if ($esUrlValida === false || !$esHttp) {
-                $FOTO_URL = trim($FOTO_URL, '/');
-                if (strpos($FOTO_URL, 'public/') !== 0) {
-                    $FOTO_URL = 'public/' . $FOTO_URL;
-                }
-            }
+            $fotoActual = $ruta ?? $fotoActual;
         }
         $data = [
             'ID_MASCOTA'     => $ID_MASCOTA,
             'ID_PERSONA'     => $ID_PERSONA,
             'NOMBRE_MASCOTA' => $NOMBRE_MASCOTA,
-            'FOTO_URL'       => $FOTO_URL !== '' ? $FOTO_URL : null,
+            'FOTO_URL'       => $fotoActual !== null && $fotoActual !== '' ? $fotoActual : null,
         ];
         if ($ESTADO !== '') {
             $data['ESTADO'] = $ESTADO;
