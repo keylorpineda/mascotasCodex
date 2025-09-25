@@ -8,10 +8,42 @@
   const estadoSelectContainer = formulario.find('[data-app-estado-select-container]');
   const estadoSelect = formulario.find('[data-app-estado-select]');
   const fotoArchivoInput = formulario.find('[name="FOTO_ARCHIVO"]');
+  const fotoActualInput = formulario.find('[name="FOTO_ACTUAL"]');
   const fotoPreviewWrapper = formulario.find('[data-foto-preview]');
   const fotoPreviewImg = fotoPreviewWrapper.find('img');
+  const fotoPreviewModalEl = document.getElementById('mascotaFotoPreviewModal');
+  const fotoPreviewModalImg = fotoPreviewModalEl ? fotoPreviewModalEl.querySelector('[data-modal-foto]') : null;
+  const fotoPreviewModal = typeof bootstrap !== 'undefined' && bootstrap.Modal && fotoPreviewModalEl
+    ? bootstrap.Modal.getOrCreateInstance(fotoPreviewModalEl)
+    : null;
+  const defaultFotoUrl = typeof URL_IMAGEN_DEFAULT !== 'undefined' ? URL_IMAGEN_DEFAULT : '';
   let buscarPersonaTimeout = null;
   let buscarPersonaXHR = null;
+
+  if (fotoPreviewModalEl && fotoPreviewModalImg && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+    fotoPreviewModalEl.addEventListener('hidden.bs.modal', () => {
+      fotoPreviewModalImg.setAttribute('src', '');
+    });
+  }
+
+  function sanitizeCedula(value) {
+    return (value || '').replace(/\D/g, '');
+  }
+
+  function resolverUrlImagen(path) {
+    const candidato = (path || '').toString().trim();
+    if (!candidato) {
+      return defaultFotoUrl;
+    }
+    if (typeof isValidHttpUrl === 'function' && isValidHttpUrl(candidato)) {
+      return candidato;
+    }
+    const normalizado = candidato.replace(/^\/+/, '');
+    if (typeof base_url === 'function') {
+      return base_url(normalizado);
+    }
+    return normalizado;
+  }
 
   function toggleDuennoFields(editable) {
     const isEditable = !!editable;
@@ -49,11 +81,15 @@
       TELEFONO_DUENNO: persona.TELEFONO || '',
       CORREO_DUENNO: persona.CORREO || ''
     });
+    const cedulaLimpia = sanitizeCedula(persona.ID_PERSONA || '');
+    if (cedulaLimpia) {
+      cedulaInput.val(cedulaLimpia);
+    }
     toggleDuennoFields(false);
   }
 
   function consultarPersonaPorCedula(cedula) {
-    const valor = (cedula || '').trim();
+    const valor = sanitizeCedula(cedula);
 
     if (buscarPersonaTimeout) {
       clearTimeout(buscarPersonaTimeout);
@@ -108,18 +144,15 @@
       {
         title: 'Foto',
         data: 'FOTO_URL',
-        render: d => {
-          if (!d) return '';
-          const url = (function resolveUrl(path) {
-            if (!path) return null;
-            if (typeof isValidHttpUrl === 'function' && isValidHttpUrl(path)) {
-              return path;
-            }
-            const normalized = path.replace(/^\/+/, '');
-            return typeof base_url === 'function' ? base_url(normalized) : normalized;
-          })(d);
-          if (!url) return '';
-          return `<img src="${url}" class="img-thumbnail" style="width:40px;height:40px;object-fit:cover;">`;
+        orderable: false,
+        render: (d, __, row) => {
+          const url = resolverUrlImagen(d);
+          const titulo = row.NOMBRE_MASCOTA ? `Fotografía de ${row.NOMBRE_MASCOTA}` : 'Fotografía de mascota';
+          return `
+            <button type="button" class="btn btn-link p-0 border-0" data-foto-preview="${url}" title="${titulo} (clic para ampliar)">
+              <img src="${url}" alt="${titulo}" class="rounded" style="width:42px;height:42px;object-fit:cover;">
+            </button>
+          `;
         }
       },
       { title: 'Estado', data: 'ESTADO', render: d => d === 'ACT' ? 'ACTIVO' : 'INACTIVO' },
@@ -154,6 +187,7 @@
     formulario[0].reset();
     formulario.removeData('editar');
     formulario.find('[name="ID_MASCOTA"]').val('');
+    fotoActualInput.val('');
     bloquearEstado(true);
     modal.find('.modal-title').text('Registrar Mascota');
     toggleDuennoFields(false);
@@ -172,6 +206,9 @@
     const url = formulario.data('editar') ? URL_MASCOTAS.editar : URL_MASCOTAS.guardar;
 
     const formData = new FormData(formulario[0]);
+    const cedulaSanitizada = sanitizeCedula(cedulaInput.val());
+    formData.set('ID_PERSONA', cedulaSanitizada);
+    formData.set('FOTO_ACTUAL', fotoActualInput.val() || '');
 
     $.ajax({
       url,
@@ -214,8 +251,12 @@
         TELEFONO_DUENNO: '',
         CORREO_DUENNO: ''
       });
-      consultarPersonaPorCedula(formulario.find('[name="ID_PERSONA"]').val());
-      actualizarPreview(formulario.find('[name="FOTO_URL"]').val());
+      const cedulaActual = formulario.find('[name="ID_PERSONA"]').val();
+      formulario.find('[name="ID_PERSONA"]').val(sanitizeCedula(cedulaActual));
+      consultarPersonaPorCedula(cedulaActual);
+      const foto = data && data.FOTO_URL ? data.FOTO_URL : '';
+      fotoActualInput.val(foto || '');
+      actualizarPreview(fotoActualInput.val());
     });
   }
 
@@ -287,13 +328,9 @@
   $('#tmascotas').on('click', '[data-editar]', editarMascota);
   $('#tmascotas').on('click', '[data-eliminar]', eliminarMascota);
   function actualizarPreview(url) {
-    const resolved = (function () {
-      if (!url) return null;
-      if (typeof isValidHttpUrl === 'function' && isValidHttpUrl(url)) return url;
-      const normalized = url.replace(/^\/+/, '');
-      return typeof base_url === 'function' ? base_url(normalized) : normalized;
-    })();
-    if (resolved) {
+    const tieneReferencia = !!(url && url.toString().trim() !== '');
+    const resolved = tieneReferencia ? resolverUrlImagen(url) : '';
+    if (tieneReferencia && resolved) {
       fotoPreviewImg.attr('src', resolved);
       fotoPreviewWrapper.removeClass('d-none');
     } else {
@@ -305,7 +342,7 @@
   fotoArchivoInput.on('change', function () {
     const file = this.files && this.files[0] ? this.files[0] : null;
     if (!file) {
-      actualizarPreview(formulario.find('[name="FOTO_URL"]').val());
+      actualizarPreview(fotoActualInput.val());
       return;
     }
     const reader = new FileReader();
@@ -316,13 +353,18 @@
     reader.readAsDataURL(file);
   });
 
-  formulario.find('[name="FOTO_URL"]').on('input blur', function () {
-    if (!fotoArchivoInput[0].files.length) {
-      actualizarPreview($(this).val());
-    }
-  });
-
   cedulaInput.on('input blur', function () {
     consultarPersonaPorCedula($(this).val());
+  });
+
+  $(document).on('click', '[data-foto-preview]', function () {
+    const url = $(this).data('fotoPreview');
+    if (!url) return;
+    if (fotoPreviewModal && fotoPreviewModalImg) {
+      fotoPreviewModalImg.setAttribute('src', url);
+      fotoPreviewModal.show();
+    } else {
+      window.open(url, '_blank');
+    }
   });
 })();
