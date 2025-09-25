@@ -18,7 +18,7 @@ class Mascotas extends BaseController
         }
 
         $resultado = model('Personas\\PersonasModel')->query(
-            "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO
+            "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO
                FROM tpersonas
               WHERE REPLACE(ID_PERSONA, '-', '') = ?
               LIMIT 1",
@@ -276,7 +276,6 @@ class Mascotas extends BaseController
                     'NOMBRE'     => $NOMBRE_DUENNO,
                     'TELEFONO'   => $TELEFONO_DUENNO,
                     'CORREO'     => $CORREO_DUENNO,
-                    'ESTADO'     => 'ACT',
                 ]);
 
                 if ($insertPersona === false) {

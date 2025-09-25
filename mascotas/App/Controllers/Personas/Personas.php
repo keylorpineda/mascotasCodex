@@ -3,6 +3,7 @@
 namespace App\Controllers\Personas;
 
 use App\Controllers\BaseController;
+use Config\Database;
 
 class Personas extends BaseController
 {
@@ -18,7 +19,7 @@ class Personas extends BaseController
         }
 
         $resultado = model('Personas\\PersonasModel')->query(
-            "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO
+            "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO
                FROM tpersonas
               WHERE REPLACE(ID_PERSONA, '-', '') = ?
               LIMIT 1",
@@ -76,7 +77,6 @@ class Personas extends BaseController
             $NOMBRE     = trim($_GET['nombre']     ?? '');
             $TELEFONO   = trim($_GET['telefono']   ?? '');
             $CORREO     = trim($_GET['correo']     ?? '');
-            $ESTADO     = trim($_GET['estado']     ?? 'ACT');
             $ID_PERSONA = $this->normalizarCedula($_GET['idpersona'] ?? '');
 
             if ($ID_PERSONA !== '' && ($NOMBRE === '' && $TELEFONO === '' && $CORREO === '')) {
@@ -105,10 +105,6 @@ class Personas extends BaseController
             $where_list = ['1=1'];
             $params     = [];
 
-            if ($ESTADO !== '') {
-                $where_list[] = 'ESTADO = ?';
-                $params[]     = $ESTADO;
-            }
             if ($ID_PERSONA !== '') {
                 $where_list[] = "REPLACE(ID_PERSONA, '-', '') = ?";
                 $params[]     = $ID_PERSONA;
@@ -139,7 +135,7 @@ class Personas extends BaseController
 
             $PersonasModel = model('Personas\\PersonasModel');
             $data = $PersonasModel->query(
-                "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO
+                "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO
                    FROM tpersonas
                   WHERE {$where}
                ORDER BY NOMBRE ASC",
@@ -266,7 +262,6 @@ class Personas extends BaseController
                 'NOMBRE'     => $NOMBRE,
                 'TELEFONO'   => $TELEFONO !== '' ? $TELEFONO : null,
                 'CORREO'     => $CORREO   !== '' ? $CORREO   : null,
-                'ESTADO'     => 'ACT',
             ]);
 
             if ($insert === false) {
@@ -312,7 +307,6 @@ class Personas extends BaseController
         $NOMBRE      = trim($_POST['NOMBRE']   ?? '');
         $TELEFONO    = trim($_POST['TELEFONO'] ?? '');
         $CORREO      = trim($_POST['CORREO']   ?? '');
-        $ESTADO      = isset($_POST['ESTADO']) ? trim($_POST['ESTADO']) : '';
 
         if ($ID_PERSONA === '' || $NOMBRE === '') {
             echo json_encode(
@@ -339,11 +333,6 @@ class Personas extends BaseController
             $TELEFONO !== '' ? $TELEFONO : null,
             $CORREO   !== '' ? $CORREO   : null,
         ];
-
-        if ($ESTADO !== '') {
-            $setParts[] = 'ESTADO = ?';
-            $valores[]  = $ESTADO;
-        }
 
         $valores[] = $ID_ORIGINAL;
 
@@ -415,25 +404,35 @@ class Personas extends BaseController
             exit;
         }
 
-        if (($persona['ESTADO'] ?? '') === 'INC') {
-            echo json_encode(
-                Warning('La persona ya se encuentra inactiva')
-                    ->setPROCESS('personas.remover')
-                    ->toArray()
-            );
-            exit;
-        }
-
         try {
             $PersonasModel = model('Personas\\PersonasModel');
+            $db            = Database::connect();
+            $resultado     = $db->query(
+                "SELECT COUNT(*) AS total FROM tmascotas WHERE REPLACE(ID_PERSONA, '-', '') = ?",
+                [$ID_PERSONA]
+            );
+            $conteo = 0;
+            if (is_object($resultado) && method_exists($resultado, 'getFirstRow')) {
+                $conteo = (int) ($resultado->getFirstRow('array')['total'] ?? 0);
+            }
+
+            if ($conteo > 0) {
+                echo json_encode(
+                    Warning('No se puede eliminar la persona porque tiene mascotas asociadas')
+                        ->setPROCESS('personas.remover')
+                        ->toArray()
+                );
+                exit;
+            }
+
             $resp = $PersonasModel->query(
-                "UPDATE tpersonas SET ESTADO = 'INC' WHERE REPLACE(ID_PERSONA, '-', '') = ?",
+                "DELETE FROM tpersonas WHERE REPLACE(ID_PERSONA, '-', '') = ?",
                 [$ID_PERSONA]
             );
 
             if ($resp !== false) {
                 echo json_encode(
-                    Success('Persona inactivada correctamente')
+                    Success('Persona eliminada correctamente')
                         ->setPROCESS('personas.remover')
                         ->toArray()
                 );
@@ -441,16 +440,16 @@ class Personas extends BaseController
             }
 
             echo json_encode(
-                Warning('No ha sido posible inactivar el registro')
+                Warning('No ha sido posible eliminar el registro')
                     ->setPROCESS('personas.remover')
                     ->toArray()
             );
             exit;
         } catch (\Throwable $e) {
-            log_message('error', 'Error al inactivar persona: {error}', ['error' => $e->getMessage()]);
+            log_message('error', 'Error al eliminar persona: {error}', ['error' => $e->getMessage()]);
             http_response_code(400);
             echo json_encode(
-                Danger('No ha sido posible inactivar el registro: ' . $e->getMessage())
+                Danger('No ha sido posible eliminar el registro: ' . $e->getMessage())
                     ->setPROCESS('personas.remover')
                     ->toArray()
             );
