@@ -20,6 +20,7 @@
   const defaultFotoUrl = typeof URL_IMAGEN_DEFAULT !== 'undefined' ? URL_IMAGEN_DEFAULT : '';
   let buscarPersonaTimeout = null;
   let buscarPersonaXHR = null;
+  let cedulaConsultaEnCurso = '';
 
   if (fotoPreviewModalEl && fotoPreviewModalImg && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
     fotoPreviewModalEl.addEventListener('hidden.bs.modal', () => {
@@ -50,13 +51,14 @@
     if (!duennoStateMessage.length) return;
     const states = {
       empty: { className: '', message: '' },
-      found: { className: 'text-success', message: 'Dueño registrado encontrado. Los datos se completaron automáticamente.' },
-      missing: { className: 'text-warning', message: 'No existe una persona registrada con esa cédula. Si la cédula está completa, complete los datos para crearla.' },
-      error: { className: 'text-danger', message: 'No se pudo verificar la cédula. Intente nuevamente.' }
+      checking: { className: 'text-info', message: 'Verificando la cédula proporcionada…' },
+      found: { className: 'text-success', message: '¡Perfecto! Encontramos al dueño registrado y completamos sus datos.' },
+      missing: { className: 'text-warning', message: 'No encontramos una persona registrada con esa cédula. Completa los datos para crearla.' },
+      error: { className: 'text-danger', message: 'No se pudo verificar la cédula. Intenta nuevamente en unos segundos.' }
     };
     const info = states[state] || states.empty;
     duennoStateMessage
-      .removeClass('text-success text-warning text-danger')
+      .removeClass('text-success text-warning text-danger text-info')
       .addClass(info.className)
       .text(customMessage || info.message);
     const shouldHide = state === 'empty' || (!info.message && !customMessage);
@@ -87,13 +89,19 @@
     });
   }
 
-  function handlePersonaNotFound(cedulaSanitizada = '') {
+  function handlePersonaNotFound(cedulaSanitizada = '', mostrarEstado = true) {
+    cedulaConsultaEnCurso = '';
     fillDuennoFields({
       NOMBRE_DUENNO: '',
       TELEFONO_DUENNO: '',
       CORREO_DUENNO: ''
     });
     toggleDuennoFields(true);
+    if (!mostrarEstado) {
+      cedulaInput.removeClass('is-valid is-invalid');
+      setOwnerState('empty');
+      return;
+    }
     if ((cedulaSanitizada || '').length >= 5) {
       cedulaInput.removeClass('is-valid').addClass('is-invalid');
       setOwnerState('missing');
@@ -110,6 +118,7 @@
       CORREO_DUENNO: persona.CORREO || ''
     });
     const cedulaLimpia = sanitizeCedula(persona.ID_PERSONA || '');
+    cedulaConsultaEnCurso = '';
     if (cedulaLimpia) {
       cedulaInput.val(cedulaLimpia);
     }
@@ -132,6 +141,7 @@
     }
 
     if (valor === '') {
+      cedulaConsultaEnCurso = '';
       fillDuennoFields({
         NOMBRE_DUENNO: '',
         TELEFONO_DUENNO: '',
@@ -143,6 +153,12 @@
       return;
     }
 
+    cedulaConsultaEnCurso = valor;
+    if (valor.length >= 5) {
+      cedulaInput.removeClass('is-valid is-invalid');
+      setOwnerState('checking');
+    }
+
     buscarPersonaTimeout = setTimeout(() => {
       buscarPersonaXHR = $.ajax({
         url: URL_PERSONAS.buscar,
@@ -151,16 +167,19 @@
         method: 'GET'
       })
         .done(resp => {
+          if (cedulaConsultaEnCurso !== valor) {
+            return;
+          }
           const data = resp && resp.data ? resp.data : resp;
           if (data && data.ID_PERSONA) {
             handlePersonaFound(data);
           } else {
-            handlePersonaNotFound(valor);
+            handlePersonaNotFound(valor, true);
           }
         })
         .fail((_, textStatus) => {
-          if (textStatus !== 'abort') {
-            handlePersonaNotFound(valor);
+          if (textStatus !== 'abort' && cedulaConsultaEnCurso === valor) {
+            handlePersonaNotFound(valor, true);
             setOwnerState('error');
           }
         })
@@ -199,8 +218,9 @@
           const url = resolverUrlImagen(d);
           const titulo = row.NOMBRE_MASCOTA ? `Fotografía de ${row.NOMBRE_MASCOTA}` : 'Fotografía de mascota';
           return `
-            <button type="button" class="btn btn-link p-0 border-0" data-foto-preview="${url}" title="${titulo} (clic para ampliar)">
-              <img src="${url}" alt="${titulo}" class="rounded" style="width:42px;height:42px;object-fit:cover;">
+            <button type="button" class="btn btn-link p-0 border-0 text-decoration-none" data-foto-preview="${url}" title="${titulo} (clic para ampliar)">
+              <i class='bx bx-image-alt fs-4 align-middle'></i>
+              <span class="visually-hidden">Ver ${titulo}</span>
             </button>
           `;
         }
