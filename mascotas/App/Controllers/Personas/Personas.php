@@ -208,28 +208,27 @@ class Personas extends BaseController
             return json_encode(Warning('Solicitud inválida')->setPROCESS('personas.remover')->toArray());
         }
 
-        $dbUsuarios = model('Usuarios\\UsuariosModel')
+        $PersonasModel = model('Personas\\PersonasModel');
+
+        $persona = $PersonasModel
+            ->select('ID_PERSONA', 'ESTADO')
             ->where('ID_PERSONA', $ID_PERSONA)
             ->limit(1)
             ->toArray()
             ->getFirstRow();
-        if ($dbUsuarios !== null) {
-            return json_encode(Warning('No es posible eliminar: la persona tiene un usuario asociado')->setPROCESS('personas.remover')->toArray());
+
+        if ($persona === null) {
+            return json_encode(Warning('No se encontró la persona solicitada')->setPROCESS('personas.remover')->toArray());
         }
 
-        $dbMascotas = model('Mascotas\\MascotasModel')
-            ->where('ID_PERSONA', $ID_PERSONA)
-            ->limit(1)
-            ->toArray()
-            ->getFirstRow();
-        if ($dbMascotas !== null) {
-            return json_encode(Warning('No es posible eliminar: la persona tiene mascotas asociadas')->setPROCESS('personas.remover')->toArray());
+        if (($persona['ESTADO'] ?? '') === 'INC') {
+            return json_encode(Warning('La persona ya se encuentra inactiva')->setPROCESS('personas.remover')->toArray());
         }
 
-        $ok = model('Personas\\PersonasModel')->delete($ID_PERSONA);
+        $ok = $PersonasModel->update(['ESTADO' => 'INC'], $ID_PERSONA);
         if (!empty($ok)) {
-            return json_encode(Success('Persona eliminada correctamente')->setPROCESS('personas.remover')->toArray());
+            return json_encode(Success('Persona inactivada correctamente')->setPROCESS('personas.remover')->toArray());
         }
-        return json_encode(Warning('No ha sido posible eliminar el registro')->setPROCESS('personas.remover')->toArray());
+        return json_encode(Warning('No ha sido posible inactivar el registro')->setPROCESS('personas.remover')->toArray());
     }
 }
