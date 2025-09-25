@@ -6,7 +6,7 @@
 
 <?php layout('base') ?>
 
-<?php section('titulo') ?>Personas<?php endSection() ?>
+<?php section('titulo') ?>Administración de Personas Registradas<?php endSection() ?>
 
 <?php section('head') ?>
 <link rel="stylesheet" href="<?= base_url('public/dist/datatables/datatables.min.css') ?>" />
@@ -30,7 +30,7 @@
       <div class="col-12">
         <div class="card">
           <div class="card-header text-center" style="background: linear-gradient(to right, #20B2AA, #00FA9A, #20B2AA)">
-            <h3 class="card-title mb-0">Gestión de Personas</h3>
+            <h3 class="card-title mb-0">Gestión Detallada de Personas y Contactos</h3>
           </div>
           <div class="card-body">
             <div class="row mb-3" data-app-filtros>
@@ -52,6 +52,16 @@
                   <input type="text" class="form-control" placeholder="Correo..." data-app-filtro-correo />
                 </label>
               </div>
+              <div class="col-sm-4 col-lg-2">
+                <label class="w-100">
+                  Estado:
+                  <select class="form-select" data-app-filtro-estado>
+                    <option value="">Todos</option>
+                    <option value="ACT" selected>Activo</option>
+                    <option value="INC">Inactivo</option>
+                  </select>
+                </label>
+              </div>
               <div class="col-sm-12 col-lg-3 d-flex align-items-end justify-content-end">
                 <button type="button" class="btn btn-primary btn-icon me-2" data-app-filtro-buscar>
                   <i class='bx bx-search-alt-2'></i> Buscar
@@ -71,6 +81,7 @@
                   <th>Nombre</th>
                   <th>Teléfono</th>
                   <th>Correo</th>
+                  <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
@@ -98,7 +109,7 @@
             <div class="col-sm-4">
               <label class="w-100">
                 Cédula: <span class="text-danger">*</span>
-                <input type="text" class="form-control" name="ID_PERSONA" required />
+                <input type="text" class="form-control" name="ID_PERSONA" required data-mask-cedula />
               </label>
             </div>
             <div class="col-sm-8">
@@ -116,8 +127,11 @@
             <div class="col-sm-6">
               <label class="w-100">
                 Correo:
-                <input type="email" class="form-control" name="CORREO" />
+                <input type="email" class="form-control" name="CORREO" data-mask-email />
               </label>
+            </div>
+            <div class="col-sm-12">
+              <input type="hidden" name="ESTADO" value="ACT" />
             </div>
           </div>
         </div>
@@ -145,7 +159,7 @@
             <div class="col-sm-4">
               <label class="w-100">
                 Cédula: <span class="text-danger">*</span>
-                <input type="text" class="form-control" name="ID_PERSONA" required />
+                <input type="text" class="form-control" name="ID_PERSONA" required data-mask-cedula />
               </label>
             </div>
             <div class="col-sm-8">
@@ -163,7 +177,16 @@
             <div class="col-sm-6">
               <label class="w-100">
                 Correo:
-                <input type="email" class="form-control" name="CORREO" />
+                <input type="email" class="form-control" name="CORREO" data-mask-email />
+              </label>
+            </div>
+            <div class="col-sm-6">
+              <label class="w-100">
+                Estado:
+                <select class="form-select" name="ESTADO">
+                  <option value="ACT">Activo</option>
+                  <option value="INC">Inactivo</option>
+                </select>
               </label>
             </div>
           </div>
@@ -181,5 +204,6 @@
 
 <?php section('foot') ?>
 <script src="<?= base_url('public/dist/datatables/datatables.min.js') ?>"></script>
+<script src="<?= base_url('public/js/form-masks.js') ?>"></script>
 <script src="<?= base_url('public/js/personas.js') ?>"></script>
 <?php endSection() ?>
