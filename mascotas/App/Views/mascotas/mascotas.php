@@ -127,6 +127,9 @@ $permiso_editar   = validar_permiso("");
                   <input type="email" class="form-control" name="CORREO_DUENNO" data-mask-email />
                 </label>
               </div>
+              <div class="col-sm-12">
+                <small class="form-text d-none" data-duenno-state></small>
+              </div>
               <div class="col-sm-4">
                 <label class="w-100">
                   Nombre Mascota: <span class="text-danger">*</span>

@@ -142,6 +142,16 @@ class Personas extends BaseController
                 $params
             );
 
+            if (is_object($data)) {
+                if (method_exists($data, 'getResultArray')) {
+                    $data = $data->getResultArray();
+                } elseif (method_exists($data, 'getResult')) {
+                    $data = $data->getResult('array');
+                } else {
+                    $data = (array) $data;
+                }
+            }
+
             if (!is_array($data)) {
                 $data = [];
             }

@@ -45,6 +45,10 @@
   function guardarPersona(ev) {
     ev.preventDefault();
     if (!formularioCrear.length) return;
+    if (formularioCrear[0].checkValidity && !formularioCrear[0].checkValidity()) {
+      formularioCrear[0].reportValidity && formularioCrear[0].reportValidity();
+      return;
+    }
     const $btn = formularioCrear.find('button[type="submit"]').prop('disabled', true);
 
     $.ajax({
