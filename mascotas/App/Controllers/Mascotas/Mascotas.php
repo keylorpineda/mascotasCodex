@@ -24,7 +24,6 @@ class Mascotas extends BaseController
               LIMIT 1",
             [$cedulaLimpia]
         );
-
         if (is_object($resultado)) {
             if (method_exists($resultado, 'getFirstRow')) {
                 $fila = $resultado->getFirstRow('array');

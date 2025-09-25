@@ -164,7 +164,6 @@ class Personas extends BaseController
             );
         }
     }
-
     public function buscar_por_cedula()
     {
         is_logged_in();
@@ -217,7 +216,6 @@ class Personas extends BaseController
         if (!validar_permiso(['PE0001'])) {
             return $this->response->setJSON(Danger('No posees permisos para realizar esa acción')->toArray());
         }
-
         $ID_PERSONA = $this->normalizarCedula($_POST['ID_PERSONA'] ?? '');
         $NOMBRE     = trim($_POST['NOMBRE']     ?? '');
         $TELEFONO   = trim($_POST['TELEFONO']   ?? '');
@@ -330,7 +328,6 @@ class Personas extends BaseController
         if (!validar_permiso(['PE0003'])) {
             return $this->response->setJSON(Danger('No posees permisos para realizar esa acción')->toArray());
         }
-
         $ID_PERSONA = $this->normalizarCedula($_POST['idpersona'] ?? '');
         if ($ID_PERSONA === '') {
             return $this->response->setJSON(
@@ -339,7 +336,6 @@ class Personas extends BaseController
                     ->toArray()
             );
         }
-
         $persona = $this->obtenerPersonaPorCedulaLimpia($ID_PERSONA);
 
         if ($persona === null) {
