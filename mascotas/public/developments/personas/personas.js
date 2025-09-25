@@ -7,6 +7,53 @@
   const modalCrear = hasBootstrap && modalCrearEl ? bootstrap.Modal.getOrCreateInstance(modalCrearEl) : null;
   const modalEditar = hasBootstrap && modalEditarEl ? bootstrap.Modal.getOrCreateInstance(modalEditarEl) : null;
 
+  function capitalizarInterno(valor) {
+    if (typeof valor !== 'string' || valor.trim() === '') {
+      return '';
+    }
+    if (typeof capitalize === 'function') {
+      return capitalize(valor);
+    }
+    const lower = valor.toLowerCase();
+    return lower.charAt(0).toUpperCase() + lower.slice(1);
+  }
+
+  function invocarAlerta(tipoDeseado, mensaje, tipoRespaldo = 'info') {
+    if (typeof alerta === 'undefined') {
+      console.warn(mensaje);
+      return null;
+    }
+
+    const candidatos = [];
+    if (tipoDeseado) {
+      const tipoLower = tipoDeseado.toLowerCase();
+      candidatos.push(tipoLower, capitalizarInterno(tipoLower), tipoDeseado);
+    }
+    if (tipoRespaldo) {
+      const respaldoLower = tipoRespaldo.toLowerCase();
+      candidatos.push(respaldoLower, capitalizarInterno(respaldoLower), tipoRespaldo);
+    }
+
+    for (const clave of candidatos) {
+      if (clave && typeof alerta[clave] === 'function') {
+        try {
+          return alerta[clave](mensaje);
+        } catch (error) {
+          console.error('No se pudo invocar la alerta:', error);
+        }
+      }
+    }
+
+    return null;
+  }
+
+  function mostrarPeligro(mensaje) {
+    const instancia = invocarAlerta('danger', mensaje, 'danger');
+    if (instancia && typeof instancia.show === 'function') {
+      instancia.show();
+    }
+  }
+
   function obtenerTipo(resp) {
     return (resp && (resp.type || resp.TIPO) || '').toString().toUpperCase();
   }
@@ -21,10 +68,9 @@
   function mostrarAlerta(resp, fallback) {
     const tipo = obtenerTipo(resp);
     const mensaje = obtenerMensaje(resp, fallback);
-    if (tipo && alerta[capitalize(tipo)]) {
-      alerta[capitalize(tipo)](mensaje).show();
-    } else {
-      alerta.Info(mensaje).show();
+    const instancia = invocarAlerta(tipo, mensaje);
+    if (instancia && typeof instancia.show === 'function') {
+      instancia.show();
     }
     return tipo;
   }
@@ -65,7 +111,7 @@
           tabla.ajax.reload(null, false);
         }
       })
-      .fail(() => alerta.Danger('No se pudo procesar la solicitud').show())
+      .fail(() => mostrarPeligro('No se pudo procesar la solicitud'))
       .always(() => $btn.prop('disabled', false));
   }
 
@@ -87,7 +133,7 @@
           tabla.ajax.reload(null, false);
         }
       })
-      .fail(() => alerta.Danger('No se pudo procesar la solicitud').show())
+      .fail(() => mostrarPeligro('No se pudo procesar la solicitud'))
       .always(() => $btn.prop('disabled', false));
   }
 
@@ -112,18 +158,18 @@
         if (modalEditar) modalEditar.show();
       })
       .fail(() => {
-        alerta.Danger('No se pudo obtener la información de la persona').show();
+        mostrarPeligro('No se pudo obtener la información de la persona');
       });
   }
 
   function eliminarPersona() {
     const id = $(this).data('id');
-    confirmar.Warning('¿Desea inactivar a esta persona?', 'Confirmación requerida').then(resp => {
+    confirmar.Warning('¿Desea eliminar a esta persona?', 'Confirmación requerida').then(resp => {
       if (!resp) return;
       $.post(base_url('personas/eliminar'), { idpersona: id }, r => {
-        const tipo = mostrarAlerta(r, 'No se pudo inactivar el registro.');
+        const tipo = mostrarAlerta(r, 'No se pudo eliminar el registro.');
         if (tipo === 'SUCCESS') tabla.ajax.reload(null, false);
-      }, 'json').fail(() => alerta.Danger('No se pudo inactivar').show());
+      }, 'json').fail(() => mostrarPeligro('No se pudo eliminar'));
     });
   }
 
@@ -152,10 +198,7 @@
           }
         }
 
-        if (typeof alerta !== 'undefined' && alerta.Danger) {
-          alerta.Danger(mensaje).show();
-        }
-
+        mostrarPeligro(mensaje);
         console.error(xhr.responseText || mensaje);
       }
     },

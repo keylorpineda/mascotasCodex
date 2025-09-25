@@ -14,7 +14,6 @@ class PersonasModel extends Model
         "ID_PERSONA",
         "NOMBRE",
         "TELEFONO",
-        "CORREO",
-        "ESTADO"
+        "CORREO"
     ];
 }

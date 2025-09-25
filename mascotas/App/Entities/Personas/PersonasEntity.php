@@ -30,13 +30,6 @@ class PersonasEntity extends Entity
         $this->attributes["CORREO"] = $v;
         return $this;
     }
-    /** @return self */
-    public function setESTADO($v)
-    {
-        $this->attributes["ESTADO"] = $v;
-        return $this;
-    }
-
     /** @return mixed */
     public function getIDPERSONA()
     {
@@ -56,10 +49,5 @@ class PersonasEntity extends Entity
     public function getCORREO()
     {
         return $this->attributes["CORREO"] ?? null;
-    }
-    /** @return mixed */
-    public function getESTADO()
-    {
-        return $this->attributes["ESTADO"] ?? null;
     }
 }
