@@ -29,7 +29,7 @@ class Personas extends BaseController
 
         if ($ID_PERSONA !== '') {
             $row = $PersonasModel
-                ->select('ID_PERSONA', 'NOMBRE', 'TELEFONO', 'CORREO', 'ESTADO')
+                ->select('ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO')
                 ->where('ID_PERSONA', $ID_PERSONA)
                 ->toArray()
                 ->getFirstRow();
@@ -99,7 +99,7 @@ class Personas extends BaseController
         }
 
         $row = model('Personas\\PersonasModel')
-            ->select('ID_PERSONA', 'NOMBRE', 'TELEFONO', 'CORREO', 'ESTADO')
+            ->select('ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO')
             ->where('ID_PERSONA', $ced)
             ->toArray()
             ->getFirstRow();
@@ -211,7 +211,7 @@ class Personas extends BaseController
         $PersonasModel = model('Personas\\PersonasModel');
 
         $persona = $PersonasModel
-            ->select('ID_PERSONA', 'ESTADO')
+            ->select('ID_PERSONA, ESTADO')
             ->where('ID_PERSONA', $ID_PERSONA)
             ->limit(1)
             ->toArray()

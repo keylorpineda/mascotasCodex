@@ -30,13 +30,6 @@
     return (value || '').replace(/\D/g, '');
   }
 
-  function formatearCedula(value) {
-    if (typeof FormMasks !== 'undefined' && typeof FormMasks.formatCedula === 'function') {
-      return FormMasks.formatCedula(value);
-    }
-    return value;
-  }
-
   function resolverUrlImagen(path) {
     const candidato = (path || '').toString().trim();
     if (!candidato) {
@@ -90,7 +83,8 @@
     });
     const cedulaLimpia = sanitizeCedula(persona.ID_PERSONA || '');
     if (cedulaLimpia) {
-      cedulaInput.val(formatearCedula(cedulaLimpia));
+      cedulaInput.val(cedulaLimpia);
+
     }
     toggleDuennoFields(false);
   }
@@ -259,7 +253,7 @@
         CORREO_DUENNO: ''
       });
       const cedulaActual = formulario.find('[name="ID_PERSONA"]').val();
-      formulario.find('[name="ID_PERSONA"]').val(formatearCedula(sanitizeCedula(cedulaActual)));
+      formulario.find('[name="ID_PERSONA"]').val(sanitizeCedula(cedulaActual));
       consultarPersonaPorCedula(cedulaActual);
       const foto = data && data.FOTO_URL ? data.FOTO_URL : '';
       fotoActualInput.val(foto || '');

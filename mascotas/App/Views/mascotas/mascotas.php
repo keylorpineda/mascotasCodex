@@ -9,7 +9,7 @@ $permiso_editar   = validar_permiso("");
 
 <?php layout('base') ?>
 
-<?php section('titulo') ?>Gestión Integral de Mascotas<?php endSection() ?>
+<?php section('titulo') ?>Gestión de Mascotas<?php endSection() ?>
 
 <?php section('head') ?>
 <link rel="stylesheet" href="<?= base_url('public/dist/datatables/datatables.min.css') ?>" />
@@ -39,8 +39,7 @@ $permiso_editar   = validar_permiso("");
                   <i class='bx bxs-dog fs-4'></i>
                 </span>
                 <div class="text-white">
-                  <h3 class="card-title mb-1">Gestión Integral de Mascotas y Dueños Registrados</h3>
-                  <small class="text-white-50">Administra la información de cada mascota y su familia desde un solo panel.</small>
+                  <h3 class="card-title mb-1">Gestión de Mascotas</h3>
                 </div>
               </div>
               <?php if ($permiso_guardar): ?>
@@ -108,7 +107,7 @@ $permiso_editar   = validar_permiso("");
               <div class="col-sm-4">
                 <label class="w-100">
                   Dueño (cédula): <span class="text-danger">*</span>
-                  <input type="text" class="form-control" name="ID_PERSONA" required data-mask-cedula />
+                  <input type="text" class="form-control" name="ID_PERSONA" required />
                 </label>
               </div>
               <div class="col-sm-4" data-duenno-field>

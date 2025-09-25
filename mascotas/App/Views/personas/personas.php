@@ -6,7 +6,7 @@
 
 <?php layout('base') ?>
 
-<?php section('titulo') ?>Administración de Personas Registradas<?php endSection() ?>
+<?php section('titulo') ?>Gestión de Personas<?php endSection() ?>
 
 <?php section('head') ?>
 <link rel="stylesheet" href="<?= base_url('public/dist/datatables/datatables.min.css') ?>" />
@@ -36,8 +36,7 @@
                   <i class='bx bxs-user-detail fs-4'></i>
                 </span>
                 <div class="text-white">
-                  <h3 class="card-title mb-1">Gestión Detallada de Personas y Contactos</h3>
-                  <small class="text-white-50">Supervisa los registros y mantén la información siempre actualizada.</small>
+                  <h3 class="card-title mb-1">Gestión de Personas</h3>
                 </div>
               </div>
               <?php if ($permiso_guardar): ?>
@@ -50,7 +49,6 @@
           <div class="card-body">
             <div class="mb-4">
               <h5 class="mb-1 text-primary"><i class='bx bx-group me-2'></i>Listado general</h5>
-              <p class="text-muted mb-0">Consulta rápidamente a las personas registradas y actualiza sus datos en cuestión de segundos.</p>
             </div>
 
             <div class="table-responsive shadow-sm rounded">
@@ -90,7 +88,7 @@
             <div class="col-sm-4">
               <label class="w-100">
                 Cédula: <span class="text-danger">*</span>
-                <input type="text" class="form-control" name="ID_PERSONA" required data-mask-cedula />
+                <input type="text" class="form-control" name="ID_PERSONA" required />
               </label>
             </div>
             <div class="col-sm-8">
@@ -140,7 +138,7 @@
             <div class="col-sm-4">
               <label class="w-100">
                 Cédula: <span class="text-danger">*</span>
-                <input type="text" class="form-control" name="ID_PERSONA" required data-mask-cedula />
+                <input type="text" class="form-control" name="ID_PERSONA" required />
               </label>
             </div>
             <div class="col-sm-8">
