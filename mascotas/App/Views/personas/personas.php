@@ -58,7 +58,6 @@
                     <th>Nombre</th>
                     <th>Teléfono</th>
                     <th>Correo</th>
-                    <th>Estado</th>
                     <th class="text-center">Acciones</th>
                   </tr>
                 </thead>
@@ -108,9 +107,6 @@
                 <input type="email" class="form-control" name="CORREO" data-mask-email />
               </label>
             </div>
-            <div class="col-sm-12">
-              <input type="hidden" name="ESTADO" value="ACT" />
-            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -156,15 +152,6 @@
               <label class="w-100">
                 Correo:
                 <input type="email" class="form-control" name="CORREO" data-mask-email />
-              </label>
-            </div>
-            <div class="col-sm-6">
-              <label class="w-100">
-                Estado:
-                <select class="form-select" name="ESTADO">
-                  <option value="ACT">Activo</option>
-                  <option value="INC">Inactivo</option>
-                </select>
               </label>
             </div>
           </div>

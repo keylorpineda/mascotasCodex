@@ -164,7 +164,6 @@
       { data: 'NOMBRE' },
       { data: 'TELEFONO' },
       { data: 'CORREO' },
-      { data: 'ESTADO', render: d => d === 'ACT' ? 'ACTIVO' : 'INACTIVO' },
       { data: null, render: renderAcciones, orderable: false, searchable: false, className: 'text-center' }
     ],
     language: {
