@@ -24,9 +24,30 @@ class Mascotas extends BaseController
               LIMIT 1",
             [$cedulaLimpia]
         );
+        if (is_object($resultado)) {
+            if (method_exists($resultado, 'getFirstRow')) {
+                $fila = $resultado->getFirstRow('array');
+                if (!empty($fila)) {
+                    return $fila;
+                }
+            }
+
+            if (method_exists($resultado, 'getResultArray')) {
+                $filas = $resultado->getResultArray();
+                if (!empty($filas)) {
+                    return $filas[0];
+                }
+            }
+        }
 
         if (is_array($resultado) && !empty($resultado)) {
-            return $resultado[0];
+            $primero = reset($resultado);
+            if (is_array($primero)) {
+                return $primero;
+            }
+            if (is_object($primero)) {
+                return (array) $primero;
+            }
         }
 
         return null;
@@ -141,7 +162,9 @@ class Mascotas extends BaseController
                     $params[] = $ID_PERSONA;
                 }
                 if ($NOMBRE_MASCOTA !== '') {
-                    $parts = array_filter(explode(' ', $NOMBRE_MASCOTA), fn($v) => trim($v) !== '');
+                    $parts = array_filter(explode(' ', $NOMBRE_MASCOTA), function ($v) {
+                        return trim($v) !== '';
+                    });
                     if (!empty($parts)) {
                         $like = [];
                         foreach ($parts as $v) {

@@ -25,8 +25,30 @@ class Personas extends BaseController
             [$cedulaLimpia]
         );
 
+        if (is_object($resultado)) {
+            if (method_exists($resultado, 'getFirstRow')) {
+                $fila = $resultado->getFirstRow('array');
+                if (!empty($fila)) {
+                    return $fila;
+                }
+            }
+
+            if (method_exists($resultado, 'getResultArray')) {
+                $filas = $resultado->getResultArray();
+                if (!empty($filas)) {
+                    return $filas[0];
+                }
+            }
+        }
+
         if (is_array($resultado) && !empty($resultado)) {
-            return $resultado[0];
+            $primero = reset($resultado);
+            if (is_array($primero)) {
+                return $primero;
+            }
+            if (is_object($primero)) {
+                return (array) $primero;
+            }
         }
 
         return null;
@@ -49,31 +71,7 @@ class Personas extends BaseController
                         ->toArray()
                 );
             }
-            $NOMBRE     = trim($_GET['nombre']     ?? '');
-            $TELEFONO   = trim($_GET['telefono']   ?? '');
-            $CORREO     = trim($_GET['correo']     ?? '');
-            $ESTADO     = trim($_GET['estado']     ?? 'ACT');
-            $ID_PERSONA = preg_replace('/\D/', '', $_GET['idpersona']  ?? '');
 
-            $PersonasModel = model('Personas\\PersonasModel');
-
-            if ($ID_PERSONA !== '') {
-                $row = $PersonasModel
-                    ->select('ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO')
-                    ->where('ID_PERSONA', $ID_PERSONA)
-                    ->toArray()
-                    ->getFirstRow();
-
-                if ($row === null) {
-                    echo json_encode(
-                        Warning('No se encontraron registros', 'Sin resultados')
-                            ->setSTATUS(false)
-                            ->setPROCESS('personas.obtener')
-                            ->setDATA([])
-                            ->toArray()
-                    );
-                    exit;
-                }
             $NOMBRE     = trim($_GET['nombre']     ?? '');
             $TELEFONO   = trim($_GET['telefono']   ?? '');
             $CORREO     = trim($_GET['correo']     ?? '');
@@ -113,7 +111,9 @@ class Personas extends BaseController
                 $params[] = $ID_PERSONA;
             }
             if ($NOMBRE !== '') {
-                $parts = array_filter(explode(' ', $NOMBRE), fn($v) => trim($v) !== '');
+                $parts = array_filter(explode(' ', $NOMBRE), function ($v) {
+                    return trim($v) !== '';
+                });
                 if (!empty($parts)) {
                     $like = [];
                     foreach ($parts as $p) {
@@ -141,6 +141,7 @@ class Personas extends BaseController
                ORDER BY NOMBRE ASC",
                 $params
             );
+
             if (!is_array($data)) {
                 $data = [];
             }
@@ -163,7 +164,6 @@ class Personas extends BaseController
             );
         }
     }
-
     public function buscar_por_cedula()
     {
         is_logged_in();
