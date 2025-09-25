@@ -4,6 +4,7 @@
   const cedulaInput = formulario.find('[name="ID_PERSONA"]');
   const duennoFields = formulario.find('[data-duenno-field]');
   const duennoInputs = duennoFields.find('input');
+  const duennoStateMessage = formulario.find('[data-duenno-state]');
   const estadoHiddenInput = formulario.find('[data-app-estado-hidden]');
   const estadoSelectContainer = formulario.find('[data-app-estado-select-container]');
   const estadoSelect = formulario.find('[data-app-estado-select]');
@@ -45,13 +46,33 @@
     return normalizado;
   }
 
+  function setOwnerState(state, customMessage) {
+    if (!duennoStateMessage.length) return;
+    const states = {
+      empty: { className: '', message: '' },
+      found: { className: 'text-success', message: 'Dueño registrado encontrado. Los datos se completaron automáticamente.' },
+      missing: { className: 'text-warning', message: 'No existe una persona registrada con esa cédula. Si la cédula está completa, complete los datos para crearla.' },
+      error: { className: 'text-danger', message: 'No se pudo verificar la cédula. Intente nuevamente.' }
+    };
+    const info = states[state] || states.empty;
+    duennoStateMessage
+      .removeClass('text-success text-warning text-danger')
+      .addClass(info.className)
+      .text(customMessage || info.message);
+    const shouldHide = state === 'empty' || (!info.message && !customMessage);
+    duennoStateMessage.toggleClass('d-none', shouldHide);
+  }
+
   function toggleDuennoFields(editable) {
     const isEditable = !!editable;
     duennoFields.toggleClass('opacity-50', !isEditable);
+    duennoFields.toggleClass('border border-warning-subtle rounded-3', isEditable);
     duennoInputs.prop('required', isEditable);
     duennoInputs.prop('readonly', !isEditable);
     duennoInputs.prop('disabled', false);
   }
+
+  setOwnerState('empty');
 
   function fillDuennoFields(values) {
     const data = values || {};
@@ -66,13 +87,20 @@
     });
   }
 
-  function handlePersonaNotFound() {
+  function handlePersonaNotFound(cedulaSanitizada = '') {
     fillDuennoFields({
       NOMBRE_DUENNO: '',
       TELEFONO_DUENNO: '',
       CORREO_DUENNO: ''
     });
     toggleDuennoFields(true);
+    if ((cedulaSanitizada || '').length >= 5) {
+      cedulaInput.removeClass('is-valid').addClass('is-invalid');
+      setOwnerState('missing');
+    } else {
+      cedulaInput.removeClass('is-valid is-invalid');
+      setOwnerState('empty');
+    }
   }
 
   function handlePersonaFound(persona) {
@@ -86,6 +114,8 @@
       cedulaInput.val(cedulaLimpia);
     }
     toggleDuennoFields(false);
+    cedulaInput.removeClass('is-invalid').addClass('is-valid');
+    setOwnerState('found');
   }
 
   function consultarPersonaPorCedula(cedula) {
@@ -108,6 +138,8 @@
         CORREO_DUENNO: ''
       });
       toggleDuennoFields(false);
+      cedulaInput.removeClass('is-valid is-invalid');
+      setOwnerState('empty');
       return;
     }
 
@@ -123,12 +155,13 @@
           if (data && data.ID_PERSONA) {
             handlePersonaFound(data);
           } else {
-            handlePersonaNotFound();
+            handlePersonaNotFound(valor);
           }
         })
         .fail((_, textStatus) => {
           if (textStatus !== 'abort') {
-            handlePersonaNotFound();
+            handlePersonaNotFound(valor);
+            setOwnerState('error');
           }
         })
         .always(() => {
@@ -196,13 +229,20 @@
       TELEFONO_DUENNO: '',
       CORREO_DUENNO: ''
     });
+    cedulaInput.removeClass('is-valid is-invalid');
+    setOwnerState('empty');
     fotoPreviewImg.attr('src', '');
     fotoPreviewWrapper.addClass('d-none');
   });
 
   function guardarMascota(ev) {
     ev.preventDefault();
-    const $btn = formulario.find('button[type="submit"]').prop('disabled', true);
+    const $btn = formulario.find('button[type="submit"]');
+    if (formulario[0].checkValidity && !formulario[0].checkValidity()) {
+      formulario[0].reportValidity && formulario[0].reportValidity();
+      return;
+    }
+    $btn.prop('disabled', true);
     const url = formulario.data('editar') ? URL_MASCOTAS.editar : URL_MASCOTAS.guardar;
 
     const formData = new FormData(formulario[0]);
@@ -251,6 +291,8 @@
         TELEFONO_DUENNO: '',
         CORREO_DUENNO: ''
       });
+      cedulaInput.removeClass('is-valid is-invalid');
+      setOwnerState('empty');
       const cedulaActual = formulario.find('[name="ID_PERSONA"]').val();
       formulario.find('[name="ID_PERSONA"]').val(sanitizeCedula(cedulaActual));
       consultarPersonaPorCedula(cedulaActual);

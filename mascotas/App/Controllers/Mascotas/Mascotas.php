@@ -220,7 +220,11 @@ class Mascotas extends BaseController
         is_logged_in();
 
         if (!validar_permiso(['M0001'])) {
-            return json_encode(Danger('No posees permisos para realizar esa acción')->setPROCESS('mascotas.guardar')->toArray());
+            return $this->response->setJSON(
+                Danger('No posees permisos para realizar esa acción')
+                    ->setPROCESS('mascotas.guardar')
+                    ->toArray()
+            );
         }
 
         $ID_PERSONA     = $this->normalizarCedula($_POST['ID_PERSONA']     ?? '');
@@ -228,7 +232,11 @@ class Mascotas extends BaseController
         $FOTO_ACTUAL    = trim($_POST['FOTO_ACTUAL']    ?? '');
 
         if ($ID_PERSONA === '' || $NOMBRE_MASCOTA === '') {
-            return json_encode(Warning('Cédula del dueño y Nombre de mascota son obligatorios')->setPROCESS('mascotas.guardar')->toArray());
+            return $this->response->setJSON(
+                Warning('Cédula del dueño y Nombre de mascota son obligatorios')
+                    ->setPROCESS('mascotas.guardar')
+                    ->toArray()
+            );
         }
 
         $archivoFoto = $_FILES['FOTO_ARCHIVO'] ?? null;
@@ -236,40 +244,81 @@ class Mascotas extends BaseController
         if ($archivoFoto !== null) {
             [$ok, $ruta, $error] = $this->procesarFoto($archivoFoto, null);
             if (!$ok) {
-                return json_encode(Warning($error ?? 'No fue posible procesar la fotografía cargada')->setPROCESS('mascotas.guardar')->toArray());
+                return $this->response->setJSON(
+                    Warning($error ?? 'No fue posible procesar la fotografía cargada')
+                        ->setPROCESS('mascotas.guardar')
+                        ->toArray()
+                );
             }
             $fotoFinal = $ruta ?? $fotoFinal;
         }
-        $PM = model('Personas\\PersonasModel');
-        $existe = $this->obtenerPersonaPorCedulaLimpia($ID_PERSONA);
-        if (!$existe) {
-            $NOMBRE_DUENNO   = trim($_POST['NOMBRE_DUENNO']   ?? '');
-            $TELEFONO_DUENNO = trim($_POST['TELEFONO_DUENNO'] ?? '');
-            $CORREO_DUENNO   = trim($_POST['CORREO_DUENNO']   ?? '');
 
-            if ($NOMBRE_DUENNO === '' || $TELEFONO_DUENNO === '' || $CORREO_DUENNO === '') {
-                return json_encode(Warning('Debe completar los datos del dueño antes de registrar la mascota')->setPROCESS('mascotas.guardar')->toArray());
+        $MascotasModel = model('Mascotas\\MascotasModel');
+        $PersonasModel = model('Personas\\PersonasModel');
+
+        try {
+            $personaExistente = $this->obtenerPersonaPorCedulaLimpia($ID_PERSONA);
+            if ($personaExistente === null) {
+                $NOMBRE_DUENNO   = trim($_POST['NOMBRE_DUENNO']   ?? '');
+                $TELEFONO_DUENNO = trim($_POST['TELEFONO_DUENNO'] ?? '');
+                $CORREO_DUENNO   = trim($_POST['CORREO_DUENNO']   ?? '');
+
+                if ($NOMBRE_DUENNO === '' || $TELEFONO_DUENNO === '' || $CORREO_DUENNO === '') {
+                    return $this->response->setJSON(
+                        Warning('Debe completar los datos del dueño antes de registrar la mascota')
+                            ->setPROCESS('mascotas.guardar')
+                            ->toArray()
+                    );
+                }
+
+                $insertPersona = $PersonasModel->insert([
+                    'ID_PERSONA' => $ID_PERSONA,
+                    'NOMBRE'     => $NOMBRE_DUENNO,
+                    'TELEFONO'   => $TELEFONO_DUENNO,
+                    'CORREO'     => $CORREO_DUENNO,
+                    'ESTADO'     => 'ACT',
+                ]);
+
+                if ($insertPersona === false) {
+                    $errores = $PersonasModel->errors();
+                    $mensaje = !empty($errores)
+                        ? implode(' ', $errores)
+                        : 'No fue posible registrar la información del dueño.';
+
+                    throw new \RuntimeException($mensaje);
+                }
             }
-            $PM->insert([
-                'ID_PERSONA' => $ID_PERSONA,
-                'NOMBRE'     => $NOMBRE_DUENNO,
-                'TELEFONO'   => $TELEFONO_DUENNO,
-                'CORREO'     => $CORREO_DUENNO,
-                'ESTADO'     => 'ACT',
+
+            $insertMascota = $MascotasModel->insert([
+                'ID_PERSONA'     => $ID_PERSONA,
+                'NOMBRE_MASCOTA' => $NOMBRE_MASCOTA,
+                'FOTO_URL'       => $fotoFinal !== null && $fotoFinal !== '' ? $fotoFinal : null,
+                'ESTADO'         => 'ACT'
             ]);
-        }
 
-        $resp = model('Mascotas\\MascotasModel')->insert([
-            'ID_PERSONA'     => $ID_PERSONA,
-            'NOMBRE_MASCOTA' => $NOMBRE_MASCOTA,
-            'FOTO_URL'       => $fotoFinal !== null && $fotoFinal !== '' ? $fotoFinal : null,
-            'ESTADO'         => 'ACT'
-        ]);
+            if ($insertMascota === false) {
+                $errores = $MascotasModel->errors();
+                $mensaje = !empty($errores)
+                    ? implode(' ', $errores)
+                    : 'No ha sido posible registrar la mascota, intentalo de nuevo más tarde.';
 
-        if (!empty($resp)) {
-            return json_encode(Success('Mascota registrada correctamente')->setPROCESS('mascotas.guardar')->toArray());
+                throw new \RuntimeException($mensaje);
+            }
+
+            return $this->response->setJSON(
+                Success('Mascota registrada correctamente')
+                    ->setPROCESS('mascotas.guardar')
+                    ->toArray()
+            );
+        } catch (\Throwable $e) {
+            log_message('error', 'Error al guardar mascota: {error}', ['error' => $e->getMessage()]);
+
+            return $this->response->setStatusCode(400)->setJSON(
+                Danger($e->getMessage(), 'No se pudo guardar la mascota')
+                    ->setPROCESS('mascotas.guardar')
+                    ->toArray()
+            );
         }
-        return json_encode(Warning('No ha sido posible registrar la mascota, intentalo de nuevo más tarde')->setPROCESS('mascotas.guardar')->toArray());
     }
 
     public function editar()
