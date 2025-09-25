@@ -17,22 +17,40 @@ class Personas extends BaseController
             return null;
         }
 
-        try {
-            $pdo = \data_base();
-            $stmt = $pdo->prepare(
-                "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO
-                   FROM tpersonas
-                  WHERE REPLACE(ID_PERSONA, '-', '') = ?
-                  LIMIT 1"
-            );
-            $stmt->execute([$cedulaLimpia]);
-            $fila = $stmt->fetch(\PDO::FETCH_ASSOC);
+        $resultado = model('Personas\\PersonasModel')->query(
+            "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO
+               FROM tpersonas
+              WHERE REPLACE(ID_PERSONA, '-', '') = ?
+              LIMIT 1",
+            [$cedulaLimpia]
+        );
 
-            return $fila !== false ? $fila : null;
-        } catch (\Throwable $e) {
-            log_message('error', 'Error al consultar persona por cédula limpia: {error}', ['error' => $e->getMessage()]);
-            return null;
+        if (is_object($resultado)) {
+            if (method_exists($resultado, 'getFirstRow')) {
+                $fila = $resultado->getFirstRow('array');
+                if (!empty($fila)) {
+                    return $fila;
+                }
+            }
+            if (method_exists($resultado, 'getResultArray')) {
+                $filas = $resultado->getResultArray();
+                if (!empty($filas)) {
+                    return $filas[0];
+                }
+            }
         }
+
+        if (is_array($resultado) && !empty($resultado)) {
+            $primero = reset($resultado);
+            if (is_array($primero)) {
+                return $primero;
+            }
+            if (is_object($primero)) {
+                return (array) $primero;
+            }
+        }
+
+        return null;
     }
 
     public function listado()
@@ -43,14 +61,16 @@ class Personas extends BaseController
     public function obtener()
     {
         is_logged_in();
+        header('Content-Type: application/json; charset=utf-8');
 
         try {
             if (!validar_permiso(['PE0001', 'PE0002', 'PE0003'])) {
-                return $this->response->setJSON(
+                echo json_encode(
                     Danger('No posees permisos para realizar esa acción')
                         ->setPROCESS('personas.obtener')
                         ->toArray()
                 );
+                exit;
             }
 
             $NOMBRE     = trim($_GET['nombre']     ?? '');
@@ -59,25 +79,27 @@ class Personas extends BaseController
             $ESTADO     = trim($_GET['estado']     ?? 'ACT');
             $ID_PERSONA = $this->normalizarCedula($_GET['idpersona'] ?? '');
 
-            if ($ID_PERSONA !== '') {
+            if ($ID_PERSONA !== '' && ($NOMBRE === '' && $TELEFONO === '' && $CORREO === '')) {
                 $row = $this->obtenerPersonaPorCedulaLimpia($ID_PERSONA);
 
                 if ($row === null) {
-                    return $this->response->setJSON(
+                    echo json_encode(
                         Warning('No se encontraron registros', 'Sin resultados')
                             ->setSTATUS(false)
                             ->setPROCESS('personas.obtener')
                             ->setDATA([])
                             ->toArray()
                     );
+                    exit;
                 }
 
-                return $this->response->setJSON(
+                echo json_encode(
                     Success('Persona encontrada correctamente', 'Consulta exitosa')
                         ->setPROCESS('personas.obtener')
                         ->setDATA($row)
                         ->toArray()
                 );
+                exit;
             }
 
             $where_list = ['1=1'];
@@ -85,20 +107,20 @@ class Personas extends BaseController
 
             if ($ESTADO !== '') {
                 $where_list[] = 'ESTADO = ?';
-                $params[] = $ESTADO;
+                $params[]     = $ESTADO;
             }
             if ($ID_PERSONA !== '') {
                 $where_list[] = "REPLACE(ID_PERSONA, '-', '') = ?";
-                $params[] = $ID_PERSONA;
+                $params[]     = $ID_PERSONA;
             }
             if ($NOMBRE !== '') {
-                $parts = array_filter(explode(' ', $NOMBRE), function ($v) {
+                $parts = array_filter(explode(' ', $NOMBRE), static function ($v) {
                     return trim($v) !== '';
                 });
                 if (!empty($parts)) {
                     $like = [];
                     foreach ($parts as $p) {
-                        $like[] = 'NOMBRE LIKE ?';
+                        $like[]  = 'NOMBRE LIKE ?';
                         $params[] = "%{$p}%";
                     }
                     $where_list[] = '(' . implode(' OR ', $like) . ')';
@@ -106,292 +128,333 @@ class Personas extends BaseController
             }
             if ($TELEFONO !== '') {
                 $where_list[] = 'TELEFONO LIKE ?';
-                $params[] = "%{$TELEFONO}%";
+                $params[]     = "%{$TELEFONO}%";
             }
-            if ($CORREO   !== '') {
+            if ($CORREO !== '') {
                 $where_list[] = 'CORREO LIKE ?';
-                $params[] = "%{$CORREO}%";
+                $params[]     = "%{$CORREO}%";
             }
 
             $where = implode(' AND ', $where_list);
-            $data = [];
 
-            try {
-                $pdo = \data_base();
-                $stmt = $pdo->prepare(
-                    "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO
-                       FROM tpersonas
-                      WHERE {$where}
-                   ORDER BY NOMBRE ASC"
-                );
-                $stmt->execute($params);
-                $data = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
-            } catch (\PDOException $e) {
-                throw $e;
+            $PersonasModel = model('Personas\\PersonasModel');
+            $data = $PersonasModel->query(
+                "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO
+                   FROM tpersonas
+                  WHERE {$where}
+               ORDER BY NOMBRE ASC",
+                $params
+            );
+
+            if (is_object($data) && method_exists($data, 'getResultArray')) {
+                $data = $data->getResultArray();
+            } elseif (!is_array($data)) {
+                $data = [];
             }
 
-            return $this->response->setJSON(
+            echo json_encode(
                 Success('Listado de personas consultado correctamente', 'Consulta exitosa')
                     ->setPROCESS('personas.obtener')
                     ->setDATA($data)
                     ->toArray()
             );
+            exit;
         } catch (\Throwable $e) {
             log_message('error', 'Error al obtener personas: {error}', ['error' => $e->getMessage()]);
-
-            return $this->response->setStatusCode(500)->setJSON(
+            http_response_code(500);
+            echo json_encode(
                 Danger('Error interno: ' . $e->getMessage(), 'Error del servidor')
                     ->setPROCESS('personas.obtener')
                     ->setDATA([])
                     ->setERRORS(['exception' => $e->getMessage()])
                     ->toArray()
             );
+            exit;
         }
     }
+
     public function buscar_por_cedula()
     {
         is_logged_in();
+        header('Content-Type: application/json; charset=utf-8');
 
         try {
             $cedulaLimpia = $this->normalizarCedula($_GET['cedula'] ?? '');
             if ($cedulaLimpia === '') {
-                return $this->response->setJSON(
+                echo json_encode(
                     Warning('Debe indicar la cédula a consultar', 'Solicitud incompleta')
                         ->setDATA([])
                         ->setPROCESS('personas.buscar_por_cedula')
                         ->toArray()
                 );
+                exit;
             }
 
             $row = $this->obtenerPersonaPorCedulaLimpia($cedulaLimpia);
-
             if ($row === null) {
-                return $this->response->setJSON(
+                echo json_encode(
                     Warning('No se localizaron datos para la cédula consultada', 'Sin resultados')
                         ->setDATA([])
                         ->setPROCESS('personas.buscar_por_cedula')
                         ->toArray()
                 );
+                exit;
             }
 
-            return $this->response->setJSON(
+            echo json_encode(
                 Success('Persona encontrada correctamente', 'Consulta exitosa')
                     ->setPROCESS('personas.buscar_por_cedula')
                     ->setDATA($row)
                     ->toArray()
             );
+            exit;
         } catch (\Throwable $e) {
             log_message('error', 'Error al consultar persona por cédula: {error}', ['error' => $e->getMessage()]);
-
-            return $this->response->setStatusCode(500)->setJSON(
+            http_response_code(500);
+            echo json_encode(
                 Danger('Error interno: ' . $e->getMessage(), 'Error del servidor')
                     ->setPROCESS('personas.buscar_por_cedula')
                     ->setDATA([])
                     ->setERRORS(['exception' => $e->getMessage()])
                     ->toArray()
             );
+            exit;
         }
     }
 
     public function guardar()
     {
         is_logged_in();
+        header('Content-Type: application/json; charset=utf-8');
 
         if (!validar_permiso(['PE0001'])) {
-            return $this->response->setJSON(Danger('No posees permisos para realizar esa acción')->toArray());
+            echo json_encode(
+                Danger('No posees permisos para realizar esa acción')
+                    ->setPROCESS('personas.guardar')
+                    ->toArray()
+            );
+            exit;
         }
+
         $ID_PERSONA = $this->normalizarCedula($_POST['ID_PERSONA'] ?? '');
         $NOMBRE     = trim($_POST['NOMBRE']     ?? '');
         $TELEFONO   = trim($_POST['TELEFONO']   ?? '');
         $CORREO     = trim($_POST['CORREO']     ?? '');
 
         if ($ID_PERSONA === '' || $NOMBRE === '') {
-            return $this->response->setJSON(
+            echo json_encode(
                 Warning('Cédula y Nombre son obligatorios')
                     ->setPROCESS('personas.guardar')
                     ->toArray()
             );
+            exit;
         }
 
         if ($this->obtenerPersonaPorCedulaLimpia($ID_PERSONA) !== null) {
-            return $this->response->setJSON(
+            echo json_encode(
                 Warning('Ya existe una persona con esa cédula')
                     ->setPROCESS('personas.guardar')
                     ->toArray()
             );
+            exit;
         }
 
         try {
-            $pdo = \data_base();
-            $stmt = $pdo->prepare(
-                "INSERT INTO tpersonas (ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO)
-                 VALUES (?, ?, ?, ?, ?)"
-            );
-            $stmt->execute([
-                $ID_PERSONA,
-                $NOMBRE,
-                $TELEFONO !== '' ? $TELEFONO : null,
-                $CORREO   !== '' ? $CORREO   : null,
-                'ACT',
+            $PersonasModel = model('Personas\\PersonasModel');
+            $insert = $PersonasModel->insert([
+                'ID_PERSONA' => $ID_PERSONA,
+                'NOMBRE'     => $NOMBRE,
+                'TELEFONO'   => $TELEFONO !== '' ? $TELEFONO : null,
+                'CORREO'     => $CORREO   !== '' ? $CORREO   : null,
+                'ESTADO'     => 'ACT',
             ]);
-        } catch (\PDOException $th) {
-            log_message('error', 'Error al insertar persona: {error}', ['error' => $th->getMessage()]);
 
-            return $this->response->setJSON(
+            if ($insert === false) {
+                $errores = $PersonasModel->errors();
+                $mensaje = !empty($errores) ? implode(' ', $errores) : 'No fue posible crear la persona.';
+                throw new \RuntimeException($mensaje);
+            }
+
+            echo json_encode(
+                Success('Persona creada correctamente')
+                    ->setPROCESS('personas.guardar')
+                    ->toArray()
+            );
+            exit;
+        } catch (\Throwable $th) {
+            log_message('error', 'Error al insertar persona: {error}', ['error' => $th->getMessage()]);
+            http_response_code(400);
+            echo json_encode(
                 Danger('No fue posible crear la persona: ' . $th->getMessage())
                     ->setPROCESS('personas.guardar')
                     ->toArray()
             );
+            exit;
         }
-
-        return $this->response->setJSON(
-            Success('Persona creada correctamente')
-                ->setPROCESS('personas.guardar')
-                ->toArray()
-        );
     }
 
     public function editar()
     {
         is_logged_in();
+        header('Content-Type: application/json; charset=utf-8');
 
         if (!validar_permiso(['PE0002'])) {
-            return $this->response->setJSON(Danger('No posees permisos para realizar esa acción')->toArray());
+            echo json_encode(
+                Danger('No posees permisos para realizar esa acción')
+                    ->setPROCESS('personas.editar')
+                    ->toArray()
+            );
+            exit;
         }
 
-        $ID_PERSONA = $this->normalizarCedula($_POST['ID_PERSONA'] ?? '');
+        $ID_PERSONA  = $this->normalizarCedula($_POST['ID_PERSONA'] ?? '');
         $ID_ORIGINAL = $this->normalizarCedula($_POST['ID'] ?? '') ?: $ID_PERSONA;
-        $NOMBRE     = trim($_POST['NOMBRE']     ?? '');
-        $TELEFONO   = trim($_POST['TELEFONO']   ?? '');
-        $CORREO     = trim($_POST['CORREO']     ?? '');
+        $NOMBRE      = trim($_POST['NOMBRE']   ?? '');
+        $TELEFONO    = trim($_POST['TELEFONO'] ?? '');
+        $CORREO      = trim($_POST['CORREO']   ?? '');
+        $ESTADO      = isset($_POST['ESTADO']) ? trim($_POST['ESTADO']) : '';
 
         if ($ID_PERSONA === '' || $NOMBRE === '') {
-            return $this->response->setJSON(
+            echo json_encode(
                 Warning('Campos incompletos')
                     ->setPROCESS('personas.editar')
                     ->toArray()
             );
+            exit;
         }
 
         if ($ID_PERSONA !== $ID_ORIGINAL && $this->obtenerPersonaPorCedulaLimpia($ID_PERSONA) !== null) {
-            return $this->response->setJSON(
+            echo json_encode(
                 Warning('Ya existe una persona con la nueva cédula ingresada')
                     ->setPROCESS('personas.editar')
                     ->toArray()
             );
+            exit;
         }
 
-        $valores = [
+        $setParts = ['ID_PERSONA = ?', 'NOMBRE = ?', 'TELEFONO = ?', 'CORREO = ?'];
+        $valores  = [
             $ID_PERSONA,
             $NOMBRE,
             $TELEFONO !== '' ? $TELEFONO : null,
             $CORREO   !== '' ? $CORREO   : null,
         ];
-        $set = [
-            'ID_PERSONA = ?',
-            'NOMBRE = ?',
-            'TELEFONO = ?',
-            'CORREO = ?',
-        ];
 
-        $estado = isset($_POST['ESTADO']) ? trim($_POST['ESTADO']) : '';
-        if ($estado !== '') {
-            $set[] = 'ESTADO = ?';
-            $valores[] = $estado;
+        if ($ESTADO !== '') {
+            $setParts[] = 'ESTADO = ?';
+            $valores[]  = $ESTADO;
         }
 
         $valores[] = $ID_ORIGINAL;
 
         try {
-            $pdo = \data_base();
-            $stmt = $pdo->prepare(
-                'UPDATE tpersonas SET ' . implode(', ', $set) . " WHERE REPLACE(ID_PERSONA, '-', '') = ?"
+            $PersonasModel = model('Personas\\PersonasModel');
+            $resp = $PersonasModel->query(
+                'UPDATE tpersonas SET ' . implode(', ', $setParts) . " WHERE REPLACE(ID_PERSONA, '-', '') = ?",
+                $valores
             );
-            $stmt->execute($valores);
 
-            if ($stmt->rowCount() > 0) {
-                return $this->response->setJSON(
+            if ($resp !== false) {
+                echo json_encode(
                     Success('Persona actualizada correctamente')
                         ->setPROCESS('personas.editar')
                         ->toArray()
                 );
+                exit;
             }
-        } catch (\PDOException $e) {
-            log_message('error', 'Error al actualizar persona: {error}', ['error' => $e->getMessage()]);
 
-            return $this->response->setJSON(
+            echo json_encode(
+                Warning('No han habido cambios en el registro')
+                    ->setPROCESS('personas.editar')
+                    ->toArray()
+            );
+            exit;
+        } catch (\Throwable $e) {
+            log_message('error', 'Error al actualizar persona: {error}', ['error' => $e->getMessage()]);
+            http_response_code(400);
+            echo json_encode(
                 Danger('No fue posible actualizar la persona: ' . $e->getMessage())
                     ->setPROCESS('personas.editar')
                     ->toArray()
             );
+            exit;
         }
-
-        return $this->response->setJSON(
-            Warning('No han habido cambios en el registro')
-                ->setPROCESS('personas.editar')
-                ->toArray()
-        );
     }
 
     public function remover()
     {
         is_logged_in();
+        header('Content-Type: application/json; charset=utf-8');
 
         if (!validar_permiso(['PE0003'])) {
-            return $this->response->setJSON(Danger('No posees permisos para realizar esa acción')->toArray());
+            echo json_encode(
+                Danger('No posees permisos para realizar esa acción')
+                    ->setPROCESS('personas.remover')
+                    ->toArray()
+            );
+            exit;
         }
+
         $ID_PERSONA = $this->normalizarCedula($_POST['idpersona'] ?? '');
         if ($ID_PERSONA === '') {
-            return $this->response->setJSON(
+            echo json_encode(
                 Warning('Solicitud inválida')
                     ->setPROCESS('personas.remover')
                     ->toArray()
             );
+            exit;
         }
-        $persona = $this->obtenerPersonaPorCedulaLimpia($ID_PERSONA);
 
+        $persona = $this->obtenerPersonaPorCedulaLimpia($ID_PERSONA);
         if ($persona === null) {
-            return $this->response->setJSON(
+            echo json_encode(
                 Warning('No se encontró la persona solicitada')
                     ->setPROCESS('personas.remover')
                     ->toArray()
             );
+            exit;
         }
 
         if (($persona['ESTADO'] ?? '') === 'INC') {
-            return $this->response->setJSON(
+            echo json_encode(
                 Warning('La persona ya se encuentra inactiva')
                     ->setPROCESS('personas.remover')
                     ->toArray()
             );
+            exit;
         }
 
         try {
-            $pdo = \data_base();
-            $stmt = $pdo->prepare("UPDATE tpersonas SET ESTADO = 'INC' WHERE REPLACE(ID_PERSONA, '-', '') = ?");
-            $stmt->execute([$ID_PERSONA]);
+            $PersonasModel = model('Personas\\PersonasModel');
+            $resp = $PersonasModel->query(
+                "UPDATE tpersonas SET ESTADO = 'INC' WHERE REPLACE(ID_PERSONA, '-', '') = ?",
+                [$ID_PERSONA]
+            );
 
-            if ($stmt->rowCount() > 0) {
-                return $this->response->setJSON(
+            if ($resp !== false) {
+                echo json_encode(
                     Success('Persona inactivada correctamente')
                         ->setPROCESS('personas.remover')
                         ->toArray()
                 );
+                exit;
             }
-        } catch (\PDOException $e) {
-            log_message('error', 'Error al inactivar persona: {error}', ['error' => $e->getMessage()]);
 
-            return $this->response->setJSON(
+            echo json_encode(
+                Warning('No ha sido posible inactivar el registro')
+                    ->setPROCESS('personas.remover')
+                    ->toArray()
+            );
+            exit;
+        } catch (\Throwable $e) {
+            log_message('error', 'Error al inactivar persona: {error}', ['error' => $e->getMessage()]);
+            http_response_code(400);
+            echo json_encode(
                 Danger('No ha sido posible inactivar el registro: ' . $e->getMessage())
                     ->setPROCESS('personas.remover')
                     ->toArray()
             );
+            exit;
         }
-
-        return $this->response->setJSON(
-            Warning('No ha sido posible inactivar el registro')
-                ->setPROCESS('personas.remover')
-                ->toArray()
-        );
     }
 }
