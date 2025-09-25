@@ -50,7 +50,6 @@
             <div class="mb-4">
               <h5 class="mb-1 text-primary"><i class='bx bx-group me-2'></i>Listado general</h5>
             </div>
-
             <div class="table-responsive shadow-sm rounded">
               <table id="tpersonas" class="table table-hover align-middle mb-0">
                 <thead class="table-light text-muted">

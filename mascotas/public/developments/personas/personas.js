@@ -131,6 +131,28 @@
         if (Array.isArray(resp.data)) return resp.data;
         if (resp.data && Array.isArray(resp.data.data)) return resp.data.data;
         return resp.data && typeof resp.data === 'object' ? Object.values(resp.data) : [];
+      },
+      error: function (xhr) {
+        let mensaje = 'Ocurrió un error al obtener el listado de personas.';
+
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+          mensaje = xhr.responseJSON.message;
+        } else if (xhr.responseText) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            if (data && (data.message || data.MENSAJE)) {
+              mensaje = data.message || data.MENSAJE;
+            }
+          } catch (error) {
+            console.error('No se pudo parsear la respuesta de error:', error);
+          }
+        }
+
+        if (typeof alerta !== 'undefined' && alerta.Danger) {
+          alerta.Danger(mensaje).show();
+        }
+
+        console.error(xhr.responseText || mensaje);
       }
     },
     columns: [

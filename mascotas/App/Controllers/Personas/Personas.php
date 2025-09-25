@@ -14,78 +14,110 @@ class Personas extends BaseController
     public function obtener()
     {
         is_logged_in();
+        header('Content-Type: application/json; charset=utf-8');
 
-        if (!validar_permiso(['PE0001', 'PE0002', 'PE0003'])) {
-            return json_encode(Danger('No posees permisos para realizar esa acción')->setPROCESS('personas.obtener')->toArray());
-        }
 
-        $NOMBRE     = trim($_GET['nombre']     ?? '');
-        $TELEFONO   = trim($_GET['telefono']   ?? '');
-        $CORREO     = trim($_GET['correo']     ?? '');
-        $ESTADO     = trim($_GET['estado']     ?? 'ACT');
-        $ID_PERSONA = preg_replace('/\D/', '', $_GET['idpersona']  ?? '');
-
-        $PersonasModel = model('Personas\\PersonasModel');
-
-        if ($ID_PERSONA !== '') {
-            $row = $PersonasModel
-                ->select('ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO')
-                ->where('ID_PERSONA', $ID_PERSONA)
-                ->toArray()
-                ->getFirstRow();
-
-            if ($row === null) {
-                return json_encode(Warning('No se encontraron registros', 'Sin resultados')->setSTATUS(false)->setPROCESS('personas.obtener')->setDATA([])->toArray());
+        try {
+            if (!validar_permiso(['PE0001', 'PE0002', 'PE0003'])) {
+                echo json_encode(
+                    Danger('No posees permisos para realizar esa acción')
+                        ->setPROCESS('personas.obtener')
+                        ->toArray()
+                );
+                exit;
             }
+            $NOMBRE     = trim($_GET['nombre']     ?? '');
+            $TELEFONO   = trim($_GET['telefono']   ?? '');
+            $CORREO     = trim($_GET['correo']     ?? '');
+            $ESTADO     = trim($_GET['estado']     ?? 'ACT');
+            $ID_PERSONA = preg_replace('/\D/', '', $_GET['idpersona']  ?? '');
 
-            return json_encode(Success('Persona encontrada correctamente', 'Consulta exitosa')->setPROCESS('personas.obtener')->setDATA($row)->toArray());
-        }
+            $PersonasModel = model('Personas\\PersonasModel');
 
-        $where_list = ['1=1'];
-        $params     = [];
+            if ($ID_PERSONA !== '') {
+                $row = $PersonasModel
+                    ->select('ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO')
+                    ->where('ID_PERSONA', $ID_PERSONA)
+                    ->toArray()
+                    ->getFirstRow();
 
-        if ($ESTADO !== '') {
-            $where_list[] = 'ESTADO = ?';
-            $params[] = $ESTADO;
-        }
-        if ($NOMBRE !== '') {
-            $parts = array_filter(explode(' ', $NOMBRE), fn($v) => trim($v) !== '');
-            if (!empty($parts)) {
-                $like = [];
-                foreach ($parts as $p) {
-                    $like[] = 'NOMBRE LIKE ?';
-                    $params[] = "%{$p}%";
+                if ($row === null) {
+                    echo json_encode(
+                        Warning('No se encontraron registros', 'Sin resultados')
+                            ->setSTATUS(false)
+                            ->setPROCESS('personas.obtener')
+                            ->setDATA([])
+                            ->toArray()
+                    );
+                    exit;
                 }
-                $where_list[] = '(' . implode(' OR ', $like) . ')';
+
+                echo json_encode(
+                    Success('Persona encontrada correctamente', 'Consulta exitosa')
+                        ->setPROCESS('personas.obtener')
+                        ->setDATA($row)
+                        ->toArray()
+                );
+                exit;
             }
-        }
-        if ($TELEFONO !== '') {
-            $where_list[] = 'TELEFONO LIKE ?';
-            $params[] = "%{$TELEFONO}%";
-        }
-        if ($CORREO   !== '') {
-            $where_list[] = 'CORREO LIKE ?';
-            $params[] = "%{$CORREO}%";
-        }
 
-        $where  = implode(' AND ', $where_list);
-        $data = $PersonasModel->query(
-            "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO
-               FROM tpersonas
-              WHERE {$where}
-           ORDER BY NOMBRE ASC",
-            $params
-        );
-        if (is_object($data) && method_exists($data, 'getResultArray')) {
-            $data = $data->getResultArray();
-        }
+            $where_list = ['1=1'];
+            $params     = [];
 
-        return json_encode(
-            Success('Listado de personas consultado correctamente', 'Consulta exitosa')
-                ->setPROCESS('personas.obtener')
-                ->setDATA($data)
-                ->toArray()
-        );
+            if ($ESTADO !== '') {
+                $where_list[] = 'ESTADO = ?';
+                $params[] = $ESTADO;
+            }
+            if ($NOMBRE !== '') {
+                $parts = array_filter(explode(' ', $NOMBRE), fn($v) => trim($v) !== '');
+                if (!empty($parts)) {
+                    $like = [];
+                    foreach ($parts as $p) {
+                        $like[] = 'NOMBRE LIKE ?';
+                        $params[] = "%{$p}%";
+                    }
+                    $where_list[] = '(' . implode(' OR ', $like) . ')';
+                }
+            }
+            if ($TELEFONO !== '') {
+                $where_list[] = 'TELEFONO LIKE ?';
+                $params[] = "%{$TELEFONO}%";
+            }
+            if ($CORREO   !== '') {
+                $where_list[] = 'CORREO LIKE ?';
+                $params[] = "%{$CORREO}%";
+            }
+
+            $where  = implode(' AND ', $where_list);
+            $data = $PersonasModel->query(
+                "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO
+                   FROM tpersonas
+                  WHERE {$where}
+               ORDER BY NOMBRE ASC",
+                $params
+            );
+            if (is_object($data) && method_exists($data, 'getResultArray')) {
+                $data = $data->getResultArray();
+            }
+
+            echo json_encode(
+                Success('Listado de personas consultado correctamente', 'Consulta exitosa')
+                    ->setPROCESS('personas.obtener')
+                    ->setDATA($data)
+                    ->toArray()
+            );
+            exit;
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            echo json_encode(
+                Danger('Error interno: ' . $e->getMessage(), 'Error del servidor')
+                    ->setPROCESS('personas.obtener')
+                    ->setDATA([])
+                    ->setERRORS(['exception' => $e->getMessage()])
+                    ->toArray()
+            );
+            exit;
+        }
     }
 
 
@@ -93,22 +125,54 @@ class Personas extends BaseController
     public function buscar_por_cedula()
     {
         is_logged_in();
-        $ced = preg_replace('/\D/', '', $_GET['cedula'] ?? '');
-        if ($ced === '') {
-            return json_encode(Warning('Debe indicar la cédula a consultar', 'Solicitud incompleta')->setDATA([])->setPROCESS('personas.buscar_por_cedula')->toArray());
+        header('Content-Type: application/json; charset=utf-8');
+
+        try {
+            $ced = preg_replace('/\D/', '', $_GET['cedula'] ?? '');
+            if ($ced === '') {
+                echo json_encode(
+                    Warning('Debe indicar la cédula a consultar', 'Solicitud incompleta')
+                        ->setDATA([])
+                        ->setPROCESS('personas.buscar_por_cedula')
+                        ->toArray()
+                );
+                exit;
+            }
+
+            $row = model('Personas\\PersonasModel')
+                ->select('ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO')
+                ->where('ID_PERSONA', $ced)
+                ->toArray()
+                ->getFirstRow();
+
+            if ($row === null) {
+                echo json_encode(
+                    Warning('No se localizaron datos para la cédula consultada', 'Sin resultados')
+                        ->setDATA([])
+                        ->setPROCESS('personas.buscar_por_cedula')
+                        ->toArray()
+                );
+                exit;
+            }
+
+            echo json_encode(
+                Success('Persona encontrada correctamente', 'Consulta exitosa')
+                    ->setPROCESS('personas.buscar_por_cedula')
+                    ->setDATA($row)
+                    ->toArray()
+            );
+            exit;
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            echo json_encode(
+                Danger('Error interno: ' . $e->getMessage(), 'Error del servidor')
+                    ->setPROCESS('personas.buscar_por_cedula')
+                    ->setDATA([])
+                    ->setERRORS(['exception' => $e->getMessage()])
+                    ->toArray()
+            );
+            exit;
         }
-
-        $row = model('Personas\\PersonasModel')
-            ->select('ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO')
-            ->where('ID_PERSONA', $ced)
-            ->toArray()
-            ->getFirstRow();
-
-        if ($row === null) {
-            return json_encode(Warning('No se localizaron datos para la cédula consultada', 'Sin resultados')->setDATA([])->setPROCESS('personas.buscar_por_cedula')->toArray());
-        }
-
-        return json_encode(Success('Persona encontrada correctamente', 'Consulta exitosa')->setPROCESS('personas.buscar_por_cedula')->setDATA($row)->toArray());
     }
 
     public function guardar()
