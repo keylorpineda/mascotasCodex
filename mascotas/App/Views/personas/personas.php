@@ -54,11 +54,11 @@
               <table id="tpersonas" class="table table-hover align-middle mb-0">
                 <thead class="table-light text-muted">
                   <tr>
+                    <th class="text-center">Acciones</th>
                     <th>Cédula</th>
                     <th>Nombre</th>
                     <th>Teléfono</th>
                     <th>Correo</th>
-                    <th class="text-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody></tbody>

@@ -78,11 +78,8 @@
   function renderAcciones(_, __, row) {
     return `
       <div class="d-flex justify-content-center gap-2">
-        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill" data-editar data-id="${row.ID_PERSONA}" data-bs-toggle="modal" data-bs-target="#personaEditarModal">
+        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill" data-editar data-id="${row.ID_PERSONA}" data-bs-toggle="modal" data-bs-target="#personaEditarModal" title="Editar información de la persona">
           <i class='bx bx-edit-alt'></i>
-        </button>
-        <button type="button" class="btn btn-outline-danger btn-sm rounded-pill" data-eliminar data-id="${row.ID_PERSONA}">
-          <i class='bx bx-user-x'></i>
         </button>
       </div>
     `;
@@ -111,7 +108,7 @@
           tabla.ajax.reload(null, false);
         }
       })
-      .fail(() => mostrarPeligro('No se pudo procesar la solicitud'))
+      .fail(() => mostrarPeligro('No se pudo completar el registro. Inténtalo nuevamente.'))
       .always(() => $btn.prop('disabled', false));
   }
 
@@ -133,7 +130,7 @@
           tabla.ajax.reload(null, false);
         }
       })
-      .fail(() => mostrarPeligro('No se pudo procesar la solicitud'))
+      .fail(() => mostrarPeligro('No se pudo completar la actualización. Inténtalo nuevamente.'))
       .always(() => $btn.prop('disabled', false));
   }
 
@@ -158,19 +155,8 @@
         if (modalEditar) modalEditar.show();
       })
       .fail(() => {
-        mostrarPeligro('No se pudo obtener la información de la persona');
+        mostrarPeligro('No se pudo obtener la información de la persona seleccionada.');
       });
-  }
-
-  function eliminarPersona() {
-    const id = $(this).data('id');
-    confirmar.Warning('¿Desea eliminar a esta persona?', 'Confirmación requerida').then(resp => {
-      if (!resp) return;
-      $.post(base_url('personas/eliminar'), { idpersona: id }, r => {
-        const tipo = mostrarAlerta(r, 'No se pudo eliminar el registro.');
-        if (tipo === 'SUCCESS') tabla.ajax.reload(null, false);
-      }, 'json').fail(() => mostrarPeligro('No se pudo eliminar'));
-    });
   }
 
   const tabla = $('#tpersonas').DataTable({
@@ -203,11 +189,11 @@
       }
     },
     columns: [
+      { data: null, render: renderAcciones, orderable: false, searchable: false, className: 'text-center' },
       { data: 'ID_PERSONA' },
       { data: 'NOMBRE' },
       { data: 'TELEFONO' },
-      { data: 'CORREO' },
-      { data: null, render: renderAcciones, orderable: false, searchable: false, className: 'text-center' }
+      { data: 'CORREO' }
     ],
     language: {
       lengthMenu: "_MENU_ por página",
@@ -226,5 +212,4 @@
   if (formularioCrear.length) formularioCrear.on('submit', guardarPersona);
   if (formularioEditar.length) formularioEditar.on('submit', actualizarPersona);
   if (formularioEditar.length) $('#tpersonas').on('click', '[data-editar]', editarPersona);
-  $('#tpersonas').on('click', '[data-eliminar]', eliminarPersona);
 })();

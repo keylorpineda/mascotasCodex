@@ -57,12 +57,12 @@ $permiso_editar   = validar_permiso("");
               <table id="tmascotas" class="table table-hover align-middle mb-0">
                 <thead class="table-light text-muted">
                   <tr>
+                    <th class="text-center">Acciones</th>
                     <th>ID</th>
                     <th>Mascota</th>
                     <th>Dueño</th>
                     <th>Foto</th>
                     <th>Estado</th>
-                    <th class="text-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody></tbody>
