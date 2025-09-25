@@ -84,6 +84,7 @@
     const cedulaLimpia = sanitizeCedula(persona.ID_PERSONA || '');
     if (cedulaLimpia) {
       cedulaInput.val(cedulaLimpia);
+
     }
     toggleDuennoFields(false);
   }
