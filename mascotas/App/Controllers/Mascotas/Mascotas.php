@@ -6,6 +6,32 @@ use App\Controllers\BaseController;
 
 class Mascotas extends BaseController
 {
+    private function normalizarCedula(?string $valor): string
+    {
+        return preg_replace('/\D+/', '', $valor ?? '') ?: '';
+    }
+
+    private function obtenerPersonaPorCedulaLimpia(string $cedulaLimpia): ?array
+    {
+        if ($cedulaLimpia === '') {
+            return null;
+        }
+
+        $resultado = model('Personas\\PersonasModel')->query(
+            "SELECT ID_PERSONA, NOMBRE, TELEFONO, CORREO, ESTADO
+               FROM tpersonas
+              WHERE REPLACE(ID_PERSONA, '-', '') = ?
+              LIMIT 1",
+            [$cedulaLimpia]
+        );
+
+        if (is_array($resultado) && !empty($resultado)) {
+            return $resultado[0];
+        }
+
+        return null;
+    }
+
     private function procesarFoto(array $archivo, ?string $fotoActual = null): array
     {
         if (!isset($archivo['error']) || $archivo['error'] === UPLOAD_ERR_NO_FILE) {
@@ -67,7 +93,7 @@ class Mascotas extends BaseController
             $MASCOTAS = [];
             if (validar_permiso(['M0001', 'M0002', 'M0003'])) {
                 $NOMBRE_MASCOTA = trim($_GET['nombre']     ?? '');
-                $ID_PERSONA     = preg_replace('/\D/', '', $_GET['idpersona']  ?? '');
+                $ID_PERSONA     = $this->normalizarCedula($_GET['idpersona']  ?? '');
                 $ESTADO         = trim($_GET['estado']     ?? 'ACT');
                 $ID_MASCOTA     = trim($_GET['idmascota']  ?? '');
 
@@ -111,7 +137,7 @@ class Mascotas extends BaseController
                     $params[] = $ESTADO;
                 }
                 if ($ID_PERSONA !== '') {
-                    $where_list[] = 'm.ID_PERSONA = ?';
+                    $where_list[] = "REPLACE(m.ID_PERSONA, '-', '') = ?";
                     $params[] = $ID_PERSONA;
                 }
                 if ($NOMBRE_MASCOTA !== '') {
@@ -174,7 +200,7 @@ class Mascotas extends BaseController
             return json_encode(Danger('No posees permisos para realizar esa acción')->setPROCESS('mascotas.guardar')->toArray());
         }
 
-        $ID_PERSONA     = preg_replace('/\D/', '', $_POST['ID_PERSONA']     ?? '');
+        $ID_PERSONA     = $this->normalizarCedula($_POST['ID_PERSONA']     ?? '');
         $NOMBRE_MASCOTA = trim($_POST['NOMBRE_MASCOTA'] ?? '');
         $FOTO_ACTUAL    = trim($_POST['FOTO_ACTUAL']    ?? '');
 
@@ -192,7 +218,7 @@ class Mascotas extends BaseController
             $fotoFinal = $ruta ?? $fotoFinal;
         }
         $PM = model('Personas\\PersonasModel');
-        $existe = $PM->select('ID_PERSONA')->where('ID_PERSONA', $ID_PERSONA)->toArray()->getFirstRow();
+        $existe = $this->obtenerPersonaPorCedulaLimpia($ID_PERSONA);
         if (!$existe) {
             $NOMBRE_DUENNO   = trim($_POST['NOMBRE_DUENNO']   ?? '');
             $TELEFONO_DUENNO = trim($_POST['TELEFONO_DUENNO'] ?? '');
@@ -232,7 +258,7 @@ class Mascotas extends BaseController
         }
 
         $ID_MASCOTA     = (int)($_POST['ID_MASCOTA']    ?? 0);
-        $ID_PERSONA     = preg_replace('/\D/', '', $_POST['ID_PERSONA']     ?? '');
+        $ID_PERSONA     = $this->normalizarCedula($_POST['ID_PERSONA']     ?? '');
         $NOMBRE_MASCOTA = trim($_POST['NOMBRE_MASCOTA'] ?? '');
         $FOTO_ACTUAL    = trim($_POST['FOTO_ACTUAL']    ?? '');
         $ESTADO         = trim($_POST['ESTADO']         ?? '');
@@ -242,6 +268,10 @@ class Mascotas extends BaseController
         }
 
         $MascotasModel = model('Mascotas\\MascotasModel');
+        if ($this->obtenerPersonaPorCedulaLimpia($ID_PERSONA) === null) {
+            return json_encode(Warning('Debe completar los datos del dueño antes de registrar la mascota')->setPROCESS('mascotas.editar')->toArray());
+        }
+
         $registroActual = $MascotasModel
             ->select('FOTO_URL')
             ->where('ID_MASCOTA', $ID_MASCOTA)
