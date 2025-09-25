@@ -76,7 +76,6 @@ class Personas extends BaseController
             $NOMBRE     = trim($_GET['nombre']     ?? '');
             $TELEFONO   = trim($_GET['telefono']   ?? '');
             $CORREO     = trim($_GET['correo']     ?? '');
-            $ESTADO     = trim($_GET['estado']     ?? 'ACT');
             $ID_PERSONA = $this->normalizarCedula($_GET['idpersona'] ?? '');
 
             if ($ID_PERSONA !== '' && ($NOMBRE === '' && $TELEFONO === '' && $CORREO === '')) {
@@ -105,10 +104,8 @@ class Personas extends BaseController
             $where_list = ['1=1'];
             $params     = [];
 
-            if ($ESTADO !== '') {
-                $where_list[] = 'ESTADO = ?';
-                $params[]     = $ESTADO;
-            }
+            $where_list[] = 'ESTADO = ?';
+            $params[]     = 'ACT';
             if ($ID_PERSONA !== '') {
                 $where_list[] = "REPLACE(ID_PERSONA, '-', '') = ?";
                 $params[]     = $ID_PERSONA;
@@ -312,7 +309,6 @@ class Personas extends BaseController
         $NOMBRE      = trim($_POST['NOMBRE']   ?? '');
         $TELEFONO    = trim($_POST['TELEFONO'] ?? '');
         $CORREO      = trim($_POST['CORREO']   ?? '');
-        $ESTADO      = isset($_POST['ESTADO']) ? trim($_POST['ESTADO']) : '';
 
         if ($ID_PERSONA === '' || $NOMBRE === '') {
             echo json_encode(
@@ -339,11 +335,6 @@ class Personas extends BaseController
             $TELEFONO !== '' ? $TELEFONO : null,
             $CORREO   !== '' ? $CORREO   : null,
         ];
-
-        if ($ESTADO !== '') {
-            $setParts[] = 'ESTADO = ?';
-            $valores[]  = $ESTADO;
-        }
 
         $valores[] = $ID_ORIGINAL;
 
