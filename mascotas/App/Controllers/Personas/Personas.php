@@ -23,7 +23,7 @@ class Personas extends BaseController
         $TELEFONO   = trim($_GET['telefono']   ?? '');
         $CORREO     = trim($_GET['correo']     ?? '');
         $ESTADO     = trim($_GET['estado']     ?? 'ACT');
-        $ID_PERSONA = trim($_GET['idpersona']  ?? '');
+        $ID_PERSONA = preg_replace('/\D/', '', $_GET['idpersona']  ?? '');
 
         $PersonasModel = model('Personas\\PersonasModel');
 
@@ -93,7 +93,7 @@ class Personas extends BaseController
     public function buscar_por_cedula()
     {
         is_logged_in();
-        $ced = trim($_GET['cedula'] ?? '');
+        $ced = preg_replace('/\D/', '', $_GET['cedula'] ?? '');
         if ($ced === '') {
             return json_encode(Warning('Debe indicar la cédula a consultar', 'Solicitud incompleta')->setDATA([])->setPROCESS('personas.buscar_por_cedula')->toArray());
         }
@@ -119,7 +119,7 @@ class Personas extends BaseController
             return json_encode(Danger('No posees permisos para realizar esa acción')->toArray());
         }
 
-        $ID_PERSONA = trim($_POST['ID_PERSONA'] ?? '');
+        $ID_PERSONA = preg_replace('/\D/', '', $_POST['ID_PERSONA'] ?? '');
         $NOMBRE     = trim($_POST['NOMBRE']     ?? '');
         $TELEFONO   = trim($_POST['TELEFONO']   ?? '');
         $CORREO     = trim($_POST['CORREO']     ?? '');
@@ -167,7 +167,7 @@ class Personas extends BaseController
             return json_encode(Danger('No posees permisos para realizar esa acción')->toArray());
         }
 
-        $ID_PERSONA = trim($_POST['ID_PERSONA'] ?? '');
+        $ID_PERSONA = preg_replace('/\D/', '', $_POST['ID_PERSONA'] ?? '');
         $NOMBRE     = trim($_POST['NOMBRE']     ?? '');
         $TELEFONO   = trim($_POST['TELEFONO']   ?? '');
         $CORREO     = trim($_POST['CORREO']     ?? '');
@@ -203,7 +203,7 @@ class Personas extends BaseController
             return json_encode(Danger('No posees permisos para realizar esa acción')->toArray());
         }
 
-        $ID_PERSONA = trim($_POST['idpersona'] ?? '');
+        $ID_PERSONA = preg_replace('/\D/', '', $_POST['idpersona'] ?? '');
         if ($ID_PERSONA === '') {
             return json_encode(Warning('Solicitud inválida')->setPROCESS('personas.remover')->toArray());
         }

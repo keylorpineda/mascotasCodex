@@ -53,7 +53,6 @@ $permiso_editar   = validar_permiso("");
           <div class="card-body">
             <div class="mb-4">
               <h5 class="mb-1 text-primary"><i class='bx bx-bone me-2'></i>Resumen de registros</h5>
-              <p class="text-muted mb-0">Consulta el estado de cada mascota y realiza actualizaciones en pocos clics.</p>
             </div>
 
             <div class="table-responsive shadow-sm rounded">
@@ -78,6 +77,20 @@ $permiso_editar   = validar_permiso("");
   </div>
 </main>
 
+<div class="modal fade" id="mascotaFotoPreviewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title text-primary"><i class='bx bx-image-alt me-2'></i>Vista de fotografía</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img src="" alt="Fotografía de la mascota" class="img-fluid rounded shadow-sm" data-modal-foto />
+      </div>
+    </div>
+  </div>
+</div>
+
 <?php if ($permiso_guardar || $permiso_editar): ?>
   <div class="modal fade" id="mascotaModal" tabindex="-1" aria-labelledby="mascotaModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -89,6 +102,7 @@ $permiso_editar   = validar_permiso("");
         <form id="FORM_MASCOTA" autocomplete="off" enctype="multipart/form-data">
           <div class="modal-body">
             <input type="hidden" name="ID_MASCOTA" />
+            <input type="hidden" name="FOTO_ACTUAL" />
             <div class="row g-3">
               <input type="hidden" name="ESTADO" value="ACT" data-app-estado-hidden />
               <div class="col-sm-4">
@@ -119,12 +133,6 @@ $permiso_editar   = validar_permiso("");
                 <label class="w-100">
                   Nombre Mascota: <span class="text-danger">*</span>
                   <input type="text" class="form-control" name="NOMBRE_MASCOTA" required />
-                </label>
-              </div>
-              <div class="col-sm-6">
-                <label class="w-100">
-                  Foto URL:
-                  <input type="text" class="form-control" name="FOTO_URL" placeholder="https://... o public/uploads/..." />
                 </label>
               </div>
               <div class="col-sm-6">
@@ -174,6 +182,7 @@ $permiso_editar   = validar_permiso("");
   const URL_PERSONAS = {
     buscar: "<?= base_url('personas/buscar-por-cedula') ?>"
   };
+  const URL_IMAGEN_DEFAULT = "<?= base_url('public/dist/img/default-mascota.svg') ?>";
 </script>
 <script src="<?= base_url('public/dist/datatables/datatables.min.js') ?>"></script>
 <script src="<?= base_url('public/js/form-masks.js') ?>"></script>
